@@ -1,20 +1,21 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TupleSections #-}
 
 -- Inference with CRFs.
 
 module Data.CRF.Chain1.Constrained.Inference
-(
--- ( tag
--- , marginals
--- , accuracy
--- , expectedFeaturesIn
--- , zx
--- , zx'
+( tag
+, tagK
+, marginals
+, accuracy
+, expectedFeaturesIn
+, zx
+, zx'
 ) where
 
-import Control.Applicative ((<$>), (<*>), pure)
+import Control.Applicative ((<$>))
 import Data.Maybe (catMaybes)
-import Data.List (maximumBy)
+import Data.List (maximumBy, sortBy)
 import Data.Function (on)
 import qualified Data.Array as A
 import qualified Data.Vector as V
@@ -28,6 +29,7 @@ import qualified Data.Number.LogFloat as L
 import qualified Data.CRF.Chain1.Constrained.DP as DP
 import Data.CRF.Chain1.Constrained.Util (partition)
 import Data.CRF.Chain1.Constrained.Dataset.Internal
+import Data.CRF.Chain1.Constrained.Feature (Feature(..))
 import Data.CRF.Chain1.Constrained.Model hiding (lbNum)
 import Data.CRF.Chain1.Constrained.Intersect
 
@@ -136,176 +138,104 @@ zx crf = zxBeta . backward crf
 zx' :: Model -> Xs -> L.LogFloat
 zx' crf sent = zxAlpha sent (forward crf sent)
 
--- --------------------------------------------------------------
--- argmax :: Ord b => (a -> Maybe b) -> [a] -> Maybe (a, b)
--- argmax _ [] = Nothing
--- argmax f xs
---     | null ys   = Nothing
---     | otherwise = Just $ foldl1 choice ys
---   where
---     ys = catMaybes $ map (\x -> (,) <$> pure x <*> f x) xs
---     choice (x1, v1) (x2, v2)
---         | v1 > v2 = (x1, v1)
---         | otherwise = (x2, v2)
--- 
--- -- | Determine the most probable label sequence given the context of the
--- -- CRF model and the sentence.
--- tag :: Model -> Xs -> [Lb]
--- tag crf sent = collectMaxArg (0, 0) [] $ DP.flexible2
---     (0, V.length sent) wordBounds
---     (\t k -> withMem (computePsi crf sent k) t k)
---   where
---     n = V.length sent
--- 
---     wordBounds k
---         | k == 0    = (Lb 0, Lb 0)
---         | otherwise = (Lb 0, Lb $ lbNum crf - 1)
--- 
---     withMem psi mem k y
---         | k == n    = Just (-1, 1)  -- -1 is a dummy value
---         | k == 0    = prune <$> argmax eval (sgIxs crf)
---         | otherwise = prune <$> argmax eval (nextIxs crf y)
---       where
---         eval (x, ix) = do
---             v <- snd <$> mem (k + 1) x
---             return $ v * psi x * valueL crf ix
---         prune ((x, _ix), v) = (x, v)
--- 
---     collectMaxArg (i, j) acc mem
---         | i < n     = collect (mem i j)
---         | otherwise = reverse acc
---       where
---         collect (Just (h, _)) = collectMaxArg (i + 1, h) (h:acc) mem
---         collect Nothing       = error "tag.collect: Nothing"
--- 
--- -- | Tag probabilities with respect to marginal distributions.
--- marginals :: Model -> Xs -> [[(Lb, L.LogFloat)]]
--- marginals crf sent =
---     let alpha = forward sum crf sent
---         beta = backward sum crf sent
---     in  [ [ (x, prob1 alpha beta k x)
---           | x <- lbSet crf ]
---         | k <- [0 .. V.length sent - 1] ]
--- 
--- -- tagProbs :: Sent s => Model -> s -> [[Double]]
--- -- tagProbs crf sent =
--- --     let alpha = forward maximum crf sent
--- --         beta = backward maximum crf sent
--- --         normalize vs =
--- --             let d = - logSum vs
--- --             in map (+d) vs
--- --         m1 k x = alpha k x + beta (k + 1) x
--- --     in  [ map exp $ normalize [m1 i k | k <- interpIxs sent i]
--- --         | i <- [0 .. V.length sent - 1] ]
--- -- 
--- -- -- tag probabilities with respect to
--- -- -- marginal distributions
--- -- tagProbs' :: Sent s => Model -> s -> [[Double]]
--- -- tagProbs' crf sent =
--- --     let alpha = forward logSum crf sent
--- --         beta = backward logSum crf sent
--- --     in  [ [ exp $ prob1 crf alpha beta sent i k
--- --           | k <- interpIxs sent i ]
--- --         | i <- [0 .. V.length sent - 1] ]
--- 
--- goodAndBad :: Model -> Xs -> Ys -> (Int, Int)
--- goodAndBad crf sent labels =
---     foldl gather (0, 0) (zip labels' labels'')
---   where
---     labels' = [ fst . maximumBy (compare `on` snd) $ unY (labels V.! i)
---               | i <- [0 .. V.length labels - 1] ]
---     labels'' = tag crf sent
---     gather (good, bad) (x, y)
---         | x == y = (good + 1, bad)
---         | otherwise = (good, bad + 1)
--- 
--- goodAndBad' :: Model -> [(Xs, Ys)] -> (Int, Int)
--- goodAndBad' crf dataset =
---     let add (g, b) (g', b') = (g + g', b + b')
---     in  foldl add (0, 0) [goodAndBad crf x y | (x, y) <- dataset]
--- 
--- -- | Compute the accuracy of the model with respect to the labeled dataset.
--- accuracy :: Model -> [(Xs, Ys)] -> Double
--- accuracy crf dataset =
---     let k = numCapabilities
---     	parts = partition k dataset
---         xs = parMap rseq (goodAndBad' crf) parts
---         (good, bad) = foldl add (0, 0) xs
---         add (g, b) (g', b') = (g + g', b + b')
---     in  fromIntegral good / fromIntegral (good + bad)
--- 
--- --------------------------------------------------------------
--- 
--- -- prob :: L.Vect t Int => Model -> Sent Int t -> Double
--- -- prob crf sent =
--- --     sum [ phiOn crf sent k
--- --         | k <- [0 .. (length sent) - 1] ]
--- --     - zx' crf sent
--- -- 
--- -- -- TODO: Wziac pod uwage "Regularization Variance" !
--- -- cll :: Model -> [Sentence] -> Double
--- -- cll crf dataset = sum [prob crf sent | sent <- dataset]
--- 
--- -- prob2 :: SentR s => Model -> ProbArray -> ProbArray -> s
--- --       -> Int -> Lb -> Lb -> Double
--- -- prob2 crf alpha beta sent k x y
--- --     = alpha (k - 1) y + beta (k + 1) x
--- --     + phi crf (observationsOn sent k) a b
--- --     - zxBeta beta
--- --   where
--- --     a = interp sent k       x
--- --     b = interp sent (k - 1) y
--- 
--- prob2 :: Model -> ProbArray -> ProbArray -> Int -> (Lb -> L.LogFloat)
---       -> Lb -> Lb -> FeatIx -> L.LogFloat
--- prob2 crf alpha beta k psi x y ix
---     = alpha (k - 1) y * beta (k + 1) x
---     * psi x * valueL crf ix / zxBeta beta
--- 
--- -- prob1 :: SentR s => Model -> ProbArray -> ProbArray
--- --       -> s -> Int -> Label -> Double
--- -- prob1 crf alpha beta sent k x = logSum
--- --     [ prob2 crf alpha beta sent k x y
--- --     | y <- interpIxs sent (k - 1) ]
--- 
--- prob1 :: ProbArray -> ProbArray -> Int -> Lb -> L.LogFloat
--- prob1 alpha beta k x =
---     alpha k x * beta (k + 1) x / zxBeta beta
--- 
--- expectedFeaturesOn
---     :: Model -> ProbArray -> ProbArray -> Xs
---     -> Int -> [(FeatIx, L.LogFloat)]
--- expectedFeaturesOn crf alpha beta sent k =
---     tFeats ++ oFeats
---   where
---     psi = computePsi crf sent k
---     pr1 = prob1     alpha beta k
---     pr2 = prob2 crf alpha beta k psi
--- 
---     oFeats = [ (ix, pr1 x) 
---              | o <- unX (sent V.! k)
---              , (x, ix) <- obIxs crf o ]
--- 
---     tFeats
---         | k == 0 = 
---             [ (ix, pr1 x) 
---             | (x, ix) <- sgIxs crf ]
---         | otherwise =
---             [ (ix, pr2 x y ix) 
---             | x <- lbSet crf
---             , (y, ix) <- prevIxs crf x ]
--- 
--- -- | A list of features (represented by feature indices) defined within
--- -- the context of the sentence accompanied by expected probabilities
--- -- determined on the basis of the model. 
--- --
--- -- One feature can occur multiple times in the output list.
--- expectedFeaturesIn :: Model -> Xs -> [(FeatIx, L.LogFloat)]
--- expectedFeaturesIn crf sent = zxF `par` zxB `pseq` zxF `pseq`
---     concat [expectedOn k | k <- [0 .. V.length sent - 1] ]
---   where
---     expectedOn = expectedFeaturesOn crf alpha beta sent
---     alpha = forward sum crf sent
---     beta = backward sum crf sent
---     zxF = zxAlpha sent alpha
---     zxB = zxBeta beta
+-- | Tag probabilities with respect to marginal distributions.
+marginals :: Model -> Xs -> [[(Lb, L.LogFloat)]]
+marginals crf xs =
+    let alpha = forward crf xs
+        beta = backward crf xs
+    in  [ [ (x, prob1 alpha beta i k)
+          | (k, x) <- lbIxs xs i ]
+        | i <- [0 .. V.length xs - 1] ]
+
+-- | Get (at most) k best tags for each word and return them in
+-- descending order.  TODO: Tagging with respect to marginal
+-- distributions might not be the best idea.  Think of some
+-- more elegant method.
+tagK :: Int -> Model -> Xs -> [[(Lb, L.LogFloat)]]
+tagK k crf xs = map
+    ( take k
+    . reverse
+    . sortBy (compare `on` snd)
+    ) (marginals crf xs)
+
+tag :: Model -> Xs -> [Lb]
+tag crf = map (fst . head) . (tagK 1 crf)
+
+prob1 :: ProbArray -> ProbArray -> Int -> LbIx -> L.LogFloat
+prob1 alpha beta k x =
+    alpha k x * beta (k + 1) x / zxBeta beta
+{-# INLINE prob1 #-}
+
+prob2 :: Model -> ProbArray -> ProbArray -> Int -> (LbIx -> L.LogFloat)
+      -> LbIx -> LbIx -> FeatIx -> L.LogFloat
+prob2 crf alpha beta k psi x y ix
+    = alpha (k - 1) y * beta (k + 1) x
+    * psi x * valueL crf ix / zxBeta beta
+{-# INLINE prob2 #-}
+
+goodAndBad :: Model -> Xs -> Ys -> (Int, Int)
+goodAndBad crf xs ys =
+    foldl gather (0, 0) $ zip labels labels'
+  where
+    labels  = [ (best . unY) (ys V.! i)
+              | i <- [0 .. V.length ys - 1] ]
+    best zs
+        | null zs   = Nothing
+        | otherwise = Just . fst $ maximumBy (compare `on` snd) zs
+    labels' = map Just $ tag crf xs
+    gather (good, bad) (x, y)
+        | x == y = (good + 1, bad)
+        | otherwise = (good, bad + 1)
+
+goodAndBad' :: Model -> [(Xs, Ys)] -> (Int, Int)
+goodAndBad' crf dataset =
+    let add (g, b) (g', b') = (g + g', b + b')
+    in  foldl add (0, 0) [goodAndBad crf x y | (x, y) <- dataset]
+
+-- | Compute the accuracy of the model with respect to the labeled dataset.
+accuracy :: Model -> [(Xs, Ys)] -> Double
+accuracy crf dataset =
+    let k = numCapabilities
+    	parts = partition k dataset
+        xs = parMap rseq (goodAndBad' crf) parts
+        (good, bad) = foldl add (0, 0) xs
+        add (g, b) (g', b') = (g + g', b + b')
+    in  fromIntegral good / fromIntegral (good + bad)
+
+expectedFeaturesOn
+    :: Model -> ProbArray -> ProbArray -> Xs
+    -> Int -> [(FeatIx, L.LogFloat)]
+expectedFeaturesOn crf alpha beta xs i =
+    tFeats ++ oFeats
+  where
+    psi = computePsi crf xs i
+    pr1 = prob1     alpha beta i
+    pr2 = prob2 crf alpha beta i psi
+
+    oFeats = [ (ix, pr1 k) 
+             | o <- unX (xs V.! i)
+             , (k, ix) <- intersect (obIxs crf o) (lbVec xs i) ]
+
+    tFeats
+        | i == 0 = catMaybes
+            [ (, pr1 k) <$> featToIx crf (SFeature x)
+            | (k, x) <- lbIxs xs i ]
+        | otherwise =
+            [ (ix, pr2 k l ix)
+            | (k,  x) <- lbIxs xs i
+            , (l, ix) <- intersect (prevIxs crf x) (lbVec xs (i-1)) ]
+
+-- | A list of features (represented by feature indices) defined within
+-- the context of the sentence accompanied by expected probabilities
+-- determined on the basis of the model. 
+--
+-- One feature can occur multiple times in the output list.
+expectedFeaturesIn :: Model -> Xs -> [(FeatIx, L.LogFloat)]
+expectedFeaturesIn crf xs = zxF `par` zxB `pseq` zxF `pseq`
+    concat [expectedOn k | k <- [0 .. V.length xs - 1] ]
+  where
+    expectedOn = expectedFeaturesOn crf alpha beta xs
+    alpha = forward crf xs
+    beta = backward crf xs
+    zxF = zxAlpha xs alpha
+    zxB = zxBeta beta

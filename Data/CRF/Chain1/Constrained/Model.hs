@@ -9,7 +9,6 @@ module Data.CRF.Chain1.Constrained.Model
 , lbSet
 , valueL
 , featToIx
-, featToInt
 , sgValue
 , sgIxs
 , obIxs
@@ -18,6 +17,7 @@ module Data.CRF.Chain1.Constrained.Model
 ) where
 
 import Control.Applicative ((<$>), (<*>))
+import Data.Maybe (fromJust)
 import Data.List (groupBy, sort)
 import Data.Function (on)
 import Data.Binary
@@ -108,20 +108,23 @@ fromList fs =
         oFeats = [feat | (feat, _val) <- fs, isOFeat feat]
         
         _sgIxsV = sgVects _lbNum
-            [ (unLb x, featToIx crf feat)
+            [ (unLb x, featToJustIx crf feat)
             | feat@(SFeature x) <- sFeats ]
 
         _prevIxsV = adjVects _lbNum
-            [ (unLb x, (y, featToIx crf feat))
+            [ (unLb x, (y, featToJustIx crf feat))
             | feat@(TFeature x y) <- tFeats ]
 
         _nextIxsV = adjVects _lbNum
-            [ (unLb y, (x, featToIx crf feat))
+            [ (unLb y, (x, featToJustIx crf feat))
             | feat@(TFeature x y) <- tFeats ]
 
         _obIxsV = adjVects _obNum
-            [ (unOb o, (x, featToIx crf feat))
+            [ (unOb o, (x, featToJustIx crf feat))
             | feat@(OFeature o x) <- oFeats ]
+
+        featToJustIx  _crf = fromJust . featToIx _crf
+        featToJustInt _crf = unFeatIx . featToJustIx _crf
 
         -- | Adjacency vectors.
         adjVects n xs =
@@ -134,7 +137,7 @@ fromList fs =
         sgVects n xs = U.replicate n dummyFeatIx U.// xs
 
         _values = U.replicate (length fs) 0.0
-            U.// [ (featToInt crf feat, val)
+            U.// [ (featToJustInt crf feat, val)
                  | (feat, val) <- fs ]
 
         checkSet set cont = if set == [0 .. length set - 1]
@@ -165,16 +168,10 @@ valueL :: Model -> FeatIx -> L.LogFloat
 valueL crf (FeatIx i) = L.logToLogFloat (values crf U.! i)
 {-# INLINE valueL #-}
 
--- | Determine the index for the given feature.
-featToIx :: Model -> Feature -> FeatIx
-featToIx crf feat = ixMap crf M.! feat
+-- | Determine index for the given feature.
+featToIx :: Model -> Feature -> Maybe FeatIx
+featToIx crf feat = M.lookup feat (ixMap crf)
 {-# INLINE featToIx #-}
-
--- | Same as 'featToIx' but immediately unwrap the feature index to
--- integer value.
-featToInt :: Model -> Feature -> Int
-featToInt crf = unFeatIx . featToIx crf
-{-# INLINE featToInt #-}
 
 -- | Potential value (in log domain) of the singular feature with the
 -- given label.  The value defaults to 1 (0 in log domain) when the feature
