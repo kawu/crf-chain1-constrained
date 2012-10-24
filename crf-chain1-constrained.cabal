@@ -50,10 +50,13 @@ library
       , Data.CRF.Chain1.Constrained.Feature
       , Data.CRF.Chain1.Constrained.Feature.Present
       , Data.CRF.Chain1.Constrained.Feature.Hidden
+      , Data.CRF.Chain1.Constrained.Model
+      , Data.CRF.Chain1.Constrained.Inference
 
     other-modules:
         Data.CRF.Chain1.Constrained.DP
       , Data.CRF.Chain1.Constrained.Util
+      , Data.CRF.Chain1.Constrained.Intersect
         
     ghc-options: -Wall -O2
 

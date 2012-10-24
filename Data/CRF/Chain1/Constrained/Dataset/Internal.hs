@@ -8,9 +8,6 @@ module Data.CRF.Chain1.Constrained.Dataset.Internal
 , mkX
 , unX
 , unR
-, lbNum
-, lbOn
-, safeLbOn
 , Xs
 
 , Y (..)
@@ -67,24 +64,14 @@ unR :: X -> [Lb]
 unR = U.toList . _unR
 {-# INLINE unR #-}
 
--- | Number of potential labels.
-lbNum :: X -> Int
-lbNum = U.length . _unR
-{-# INLINE lbNum #-}
-
--- | Potential label on the given vector position.
-lbOn :: X -> Int -> Lb
-lbOn r = (_unR r U.!)
-{-# INLINE lbOn #-}
-
--- | Potential label on the given vector position or Nothing, if the
--- position is out of bounds.
-safeLbOn :: X -> Int -> Maybe Lb
-safeLbOn r = (_unR r U.!?)
-{-# INLINE safeLbOn #-}
-
 -- | Sentence of words.
 type Xs = V.Vector X
+
+-- -- | Potential label on the given vector position or Nothing, if the
+-- -- position is out of bounds.
+-- safeLbOn :: X -> Int -> Maybe Lb
+-- safeLbOn r = (_unR r U.!?)
+-- {-# INLINE safeLbOn #-}
 
 -- | Probability distribution over labels.  We assume, that when y is
 -- a member of chosen labels list it is also a member of the list
