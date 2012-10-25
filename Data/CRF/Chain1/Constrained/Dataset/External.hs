@@ -35,7 +35,9 @@ mkDist =
         in  fmap (/z) dist
 
 -- | A WordL is a labeled word, i.e. a word with probability distribution
--- defined over labels.
+-- defined over labels.  We assume, that every label from the distribution
+-- domain is a member of the set of potential labels corresponding to the
+-- word.  TODO: Ensure the assumption using the smart constructor.
 type WordL a b = (Word a b, Dist b)
 
 -- | Annotate the word with the label.

@@ -48,6 +48,7 @@ library
     exposed-modules:
         Data.CRF.Chain1.Constrained.Dataset.Internal
       , Data.CRF.Chain1.Constrained.Dataset.External
+      , Data.CRF.Chain1.Constrained.Dataset.Codec
       , Data.CRF.Chain1.Constrained.Feature
       , Data.CRF.Chain1.Constrained.Feature.Present
       , Data.CRF.Chain1.Constrained.Feature.Hidden
