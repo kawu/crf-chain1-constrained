@@ -40,21 +40,21 @@ type ProbArray  = Int -> LbIx -> L.LogFloat
 
 -- | Number of potential labels on the given position of the sentence.
 lbNum :: Xs -> Int -> Int
-lbNum xs k = (U.length . _unR) (xs V.! k)
+lbNum xs k = (U.length . unAVec . _unR) (xs V.! k)
 {-# INLINE lbNum #-}
 
 -- | Vector of potential labels on the given position of the sentence.
-lbVec :: Xs -> Int -> U.Vector Lb
+lbVec :: Xs -> Int -> AVec Lb
 lbVec sent k = _unR (sent V.! k)
 {-# INLINE lbVec #-}
 
 -- | Potential label on the given vector position.
 lbOn :: X -> Int -> Lb
-lbOn r = (_unR r U.!)
+lbOn r = (unAVec (_unR r) U.!)
 {-# INLINE lbOn #-}
 
 lbIxs :: Xs -> Int -> [(Int, Lb)]
-lbIxs xs = zip [0..] . U.toList . lbVec xs
+lbIxs xs = zip [0..] . U.toList . unAVec . lbVec xs
 {-# INLINE lbIxs #-}
 
 -- | Compute the table of potential products associated with 

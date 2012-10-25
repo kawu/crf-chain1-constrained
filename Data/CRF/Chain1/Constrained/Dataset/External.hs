@@ -1,5 +1,6 @@
 module Data.CRF.Chain1.Constrained.Dataset.External
 ( Word (..)
+, unknown
 , Sent
 , Dist (unDist)
 , mkDist
@@ -16,6 +17,11 @@ import qualified Data.Map as M
 data Word a b = Word
     { obs   :: S.Set a
     , lbs   :: S.Set b }
+
+-- | Is the word unknown?
+unknown :: Word a b -> Bool
+unknown word = S.size (lbs word) == 0
+{-# INLINE unknown #-}
 
 -- | A sentence of words.
 type Sent a b = [Word a b]

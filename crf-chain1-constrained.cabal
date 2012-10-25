@@ -54,6 +54,7 @@ library
       , Data.CRF.Chain1.Constrained.Feature.Hidden
       , Data.CRF.Chain1.Constrained.Model
       , Data.CRF.Chain1.Constrained.Inference
+      , Data.CRF.Chain1.Constrained.Train
 
     other-modules:
         Data.CRF.Chain1.Constrained.DP

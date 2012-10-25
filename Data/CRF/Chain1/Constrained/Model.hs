@@ -9,6 +9,8 @@ module Data.CRF.Chain1.Constrained.Model
 , lbSet
 , valueL
 , featToIx
+, featToJustIx
+, featToJustInt
 , sgValue
 , sgIxs
 , obIxs
@@ -21,7 +23,6 @@ import Data.Maybe (fromJust)
 import Data.List (groupBy, sort)
 import Data.Function (on)
 import Data.Binary
-import Data.Vector.Binary ()
 import qualified Data.Vector.Generic.Base as G
 import qualified Data.Vector.Generic.Mutable as G
 import qualified Data.Set as Set
@@ -30,8 +31,9 @@ import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector as V
 import qualified Data.Number.LogFloat as L
 
-import Data.CRF.Chain1.Constrained.Dataset.Internal
 import Data.CRF.Chain1.Constrained.Feature
+import Data.CRF.Chain1.Constrained.Dataset.Internal hiding (fromList)
+import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as A
 
 -- | A feature index.  To every model feature a unique index is assigned.
 newtype FeatIx = FeatIx { unFeatIx :: Int }
@@ -43,12 +45,15 @@ type LbIx   = (Lb, FeatIx)
 
 dummyFeatIx :: FeatIx
 dummyFeatIx = FeatIx (-1)
+{-# INLINE dummyFeatIx #-}
 
 isDummy :: FeatIx -> Bool
 isDummy (FeatIx ix) = ix < 0
+{-# INLINE isDummy #-}
 
 notDummy :: FeatIx -> Bool
 notDummy = not . isDummy
+{-# INLINE notDummy #-}
 
 -- | The model is realy a map from features to potentials, but for the sake
 -- of efficiency the internal representation is more complex.
@@ -65,13 +70,13 @@ data Model = Model {
     , sgIxsV 	:: U.Vector FeatIx
     -- | Set of labels for the given observation which, together with the
     -- observation, constitute an observation feature of the model. 
-    , obIxsV    :: V.Vector (U.Vector LbIx)
+    , obIxsV    :: V.Vector (AVec LbIx)
     -- | Set of ,,previous'' labels for the value of the ,,current'' label.
     -- Both labels constitute a transition feature present in the the model.
-    , prevIxsV  :: V.Vector (U.Vector LbIx)
+    , prevIxsV  :: V.Vector (AVec LbIx)
     -- | Set of ,,next'' labels for the value of the ,,current'' label.
     -- Both labels constitute a transition feature present in the the model.
-    , nextIxsV  :: V.Vector (U.Vector LbIx) }
+    , nextIxsV  :: V.Vector (AVec LbIx) }
 
 instance Binary Model where
     put crf = do
@@ -123,15 +128,12 @@ fromList fs =
             [ (unOb o, (x, featToJustIx crf feat))
             | feat@(OFeature o x) <- oFeats ]
 
-        featToJustIx  _crf = fromJust . featToIx _crf
-        featToJustInt _crf = unFeatIx . featToJustIx _crf
-
         -- | Adjacency vectors.
         adjVects n xs =
-            V.replicate n (U.fromList []) V.// update
+            V.replicate n (A.fromList []) V.// update
           where
             update = map mkVect $ groupBy ((==) `on` fst) $ sort xs
-            mkVect (y:ys) = (fst y, U.fromList $ sort $ map snd (y:ys))
+            mkVect (y:ys) = (fst y, A.fromList $ map snd (y:ys))
             mkVect [] = error "mkVect: null list"
 
         sgVects n xs = U.replicate n dummyFeatIx U.// xs
@@ -173,6 +175,14 @@ featToIx :: Model -> Feature -> Maybe FeatIx
 featToIx crf feat = M.lookup feat (ixMap crf)
 {-# INLINE featToIx #-}
 
+featToJustIx :: Model -> Feature -> FeatIx
+featToJustIx _crf = fromJust . featToIx _crf
+{-# INLINE featToJustIx #-}
+
+featToJustInt :: Model -> Feature -> Int
+featToJustInt _crf = unFeatIx . featToJustIx _crf
+{-# INLINE featToJustInt #-}
+
 -- | Potential value (in log domain) of the singular feature with the
 -- given label.  The value defaults to 1 (0 in log domain) when the feature
 -- is not a member of the model.
@@ -195,21 +205,21 @@ sgIxs crf
 -- | List of labels which constitute a valid feature in combination with
 -- the given observation accompanied by feature indices determined by
 -- these labels.
-obIxs :: Model -> Ob -> U.Vector LbIx
+obIxs :: Model -> Ob -> AVec LbIx
 obIxs crf x = obIxsV crf V.! unOb x
 {-# INLINE obIxs #-}
 
 -- | List of ,,next'' labels which constitute a valid feature in combination
 -- with the ,,current'' label accompanied by feature indices determined by
 -- ,,next'' labels.
-nextIxs :: Model -> Lb -> U.Vector LbIx
+nextIxs :: Model -> Lb -> AVec LbIx
 nextIxs crf x = nextIxsV crf V.! unLb x
 {-# INLINE nextIxs #-}
 
 -- | List of ,,previous'' labels which constitute a valid feature in
 -- combination with the ,,current'' label accompanied by feature indices
 -- determined by ,,previous'' labels.
-prevIxs :: Model -> Lb -> U.Vector LbIx
+prevIxs :: Model -> Lb -> AVec LbIx
 prevIxs crf x = prevIxsV crf V.! unLb x
 {-# INLINE prevIxs #-}
 

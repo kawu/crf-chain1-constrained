@@ -9,16 +9,19 @@ module Data.CRF.Chain1.Constrained.Train
 import Control.Applicative ((<$>), (<*>))
 import System.IO (hSetBuffering, stdout, BufferMode (..))
 import Data.Binary (Binary, put, get)
+import qualified Data.Set as S
+import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Numeric.SGD as SGD
 import qualified Numeric.SGD.LogSigned as L
 
-import Data.CRF.Chain1.Dataset.Internal
-import Data.CRF.Chain1.Dataset.External (SentL)
-import Data.CRF.Chain1.Dataset.Codec (mkCodec, Codec, encodeDataL)
-import Data.CRF.Chain1.Feature (Feature, featuresIn)
-import Data.CRF.Chain1.Model (Model (..), mkModel, FeatIx (..), featToInt)
-import Data.CRF.Chain1.Inference (accuracy, expectedFeaturesIn)
+import Data.CRF.Chain1.Constrained.Dataset.Internal
+import Data.CRF.Chain1.Constrained.Dataset.External (SentL, unknown, unDist)
+import Data.CRF.Chain1.Constrained.Dataset.Codec (mkCodec, Codec, encodeDataL)
+import Data.CRF.Chain1.Constrained.Feature (Feature, featuresIn)
+import Data.CRF.Chain1.Constrained.Model
+    (Model (..), mkModel, FeatIx (..), featToJustInt)
+import Data.CRF.Chain1.Constrained.Inference (accuracy, expectedFeaturesIn)
 
 -- | A conditional random field model with additional codec used for
 -- data encoding.
@@ -51,9 +54,10 @@ train
     -> IO (CRF a b)                 -- ^ Resulting model
 train sgdArgs trainIO evalIO'Maybe extractFeats = do
     hSetBuffering stdout NoBuffering
-    (_codec, trainData) <- mkCodec <$> trainIO
+    r0 <- unkSet <$> trainIO
+    (_codec, trainData) <- mkCodec r0 <$> trainIO
     evalDataM <- case evalIO'Maybe of
-        Just (x, evalIO) -> Just . encodeDataL x _codec <$> evalIO
+        Just (x, evalIO) -> Just . encodeDataL r0 x _codec <$> evalIO
         Nothing -> return Nothing
     let crf  = mkModel (extractFeats trainData)
     para <- SGD.sgdM sgdArgs
@@ -61,9 +65,20 @@ train sgdArgs trainIO evalIO'Maybe extractFeats = do
         (gradOn crf) (V.fromList trainData) (values crf)
     return $ CRF _codec (crf { values = para })
 
+-- | Collect labels assigned to unknown words (with empty list
+-- of potential interpretations).
+unkSet :: Ord b => [SentL a b] -> S.Set b
+unkSet =
+    S.fromList . concatMap onSent
+  where
+    onSent = concatMap onWord
+    onWord word
+        | unknown (fst word)    = M.keys . unDist . snd $ word
+        | otherwise             = []
+
 gradOn :: Model -> SGD.Para -> (Xs, Ys) -> SGD.Grad
 gradOn crf para (xs, ys) = SGD.fromLogList $
-    [ (featToInt curr feat, L.fromPos val)
+    [ (featToJustInt curr feat, L.fromPos val)
     | (feat, val) <- featuresIn xs ys ] ++
     [ (ix, L.fromNeg val)
     | (FeatIx ix, val) <- expectedFeaturesIn curr xs ]

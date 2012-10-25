@@ -7,20 +7,22 @@ module Data.CRF.Chain1.Constrained.Intersect
 
 import qualified Data.Vector.Unboxed as U
 
-import Data.CRF.Chain1.Constrained.Dataset.Internal (Lb)
+import Data.CRF.Chain1.Constrained.Dataset.Internal (Lb, AVec, unAVec)
 import Data.CRF.Chain1.Constrained.Model (FeatIx)
 
 -- | Assumption: both input list are given in an ascending order.
 intersect
-    :: U.Vector (Lb, FeatIx)    -- ^ Vector of (label, features index) pairs
-    -> U.Vector Lb              -- ^ Vector of labels
+    :: AVec (Lb, FeatIx)    -- ^ Vector of (label, features index) pairs
+    -> AVec Lb              -- ^ Vector of labels
     -- | Intersection of arguments: vector indices from the second list
     -- and feature indices from the first list.
     -> [(Int, FeatIx)]
-intersect xs ys
+intersect xs' ys'
     | n == 0 || m == 0 = []
     | otherwise = merge xs ys
   where
+    xs = unAVec xs'
+    ys = unAVec ys'
     n = U.length ys
     m = U.length xs
 
