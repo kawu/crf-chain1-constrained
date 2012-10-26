@@ -17,7 +17,8 @@ import qualified Numeric.SGD.LogSigned as L
 
 import Data.CRF.Chain1.Constrained.Dataset.Internal
 import Data.CRF.Chain1.Constrained.Dataset.External (SentL, unknown, unDist)
-import Data.CRF.Chain1.Constrained.Dataset.Codec (mkCodec, Codec, encodeDataL)
+import Data.CRF.Chain1.Constrained.Dataset.Codec
+    (mkCodec, Codec, encodeDataL, encodeLabels)
 import Data.CRF.Chain1.Constrained.Feature (Feature, featuresIn)
 import Data.CRF.Chain1.Constrained.Model
     (Model (..), mkModel, FeatIx (..), featToJustInt)
@@ -31,13 +32,11 @@ data CRF a b = CRF {
     -- integer number.
     codec :: Codec a b,
     -- | The actual model, which is a map from 'Feature's to potentials.
-    model :: Model,
-    -- | The set of default potential labels. 
-    r0 :: S.Set b }
+    model :: Model }
 
 instance (Ord a, Ord b, Binary a, Binary b) => Binary (CRF a b) where
-    put CRF{..} = put codec >> put model >> put r0
-    get = CRF <$> get <*> get <*> get
+    put CRF{..} = put codec >> put model
+    get = CRF <$> get <*> get
 
 -- | Train the CRF using the stochastic gradient descent method.
 -- The resulting model will contain features extracted with
@@ -47,6 +46,7 @@ instance (Ord a, Ord b, Binary a, Binary b) => Binary (CRF a b) where
 -- When the evaluation data 'IO' action is 'Just', the iterative
 -- training process will notify the user about the current accuracy
 -- on the evaluation part every full iteration over the training part.
+-- TODO: Accept custom r0 construction function.
 train
     :: (Ord a, Ord b)
     => SGD.SgdArgs                  -- ^ Args for SGD
@@ -56,16 +56,17 @@ train
     -> IO (CRF a b)                 -- ^ Resulting model
 train sgdArgs trainIO evalIO'Maybe extractFeats = do
     hSetBuffering stdout NoBuffering
-    _r0 <- unkSet <$> trainIO
-    (_codec, trainData) <- mkCodec _r0 <$> trainIO
+    (_codec, trainData) <- mkCodec <$> trainIO
+    _r0 <- encodeLabels _codec . S.toList . unkSet <$> trainIO
     evalDataM <- case evalIO'Maybe of
-        Just evalIO -> Just . encodeDataL _r0 _codec <$> evalIO
+        Just evalIO -> Just . encodeDataL _codec <$> evalIO
         Nothing     -> return Nothing
-    let crf  = mkModel (extractFeats trainData)
+    let feats = extractFeats trainData
+        crf = (mkModel feats) { r0 = _r0 }
     para <- SGD.sgdM sgdArgs
         (notify sgdArgs crf trainData evalDataM)
         (gradOn crf) (V.fromList trainData) (values crf)
-    return $ CRF _codec (crf { values = para }) _r0
+    return $ CRF _codec (crf { values = para })
 
 -- | Collect labels assigned to unknown words (with empty list
 -- of potential interpretations).

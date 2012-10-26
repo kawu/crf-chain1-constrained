@@ -38,23 +38,26 @@ type ProbArray  = Int -> LbIx -> L.LogFloat
 
 -- Some basic definitions.
 
--- | Number of potential labels on the given position of the sentence.
-lbNum :: Xs -> Int -> Int
-lbNum xs k = (U.length . unAVec . _unR) (xs V.! k)
-{-# INLINE lbNum #-}
-
 -- | Vector of potential labels on the given position of the sentence.
-lbVec :: Xs -> Int -> AVec Lb
-lbVec sent k = _unR (sent V.! k)
+lbVec :: Model -> Xs -> Int -> AVec Lb
+lbVec crf xs k = case xs V.! k of
+    X _     -> (r0 crf)
+    R _ r   -> r
 {-# INLINE lbVec #-}
 
+-- | Number of potential labels on the given position of the sentence.
+lbNum :: Model -> Xs -> Int -> Int
+lbNum crf xs = (U.length . unAVec) . lbVec crf xs
+{-# INLINE lbNum #-}
+
 -- | Potential label on the given vector position.
-lbOn :: X -> Int -> Lb
-lbOn r = (unAVec (_unR r) U.!)
+lbOn :: Model -> X -> Int -> Lb
+lbOn crf (X _)   = (unAVec (r0 crf) U.!)
+lbOn _   (R _ r) = (unAVec r U.!)
 {-# INLINE lbOn #-}
 
-lbIxs :: Xs -> Int -> [(Int, Lb)]
-lbIxs xs = zip [0..] . U.toList . unAVec . lbVec xs
+lbIxs :: Model -> Xs -> Int -> [(Int, Lb)]
+lbIxs crf xs = zip [0..] . U.toList . unAVec . lbVec crf xs
 {-# INLINE lbIxs #-}
 
 -- | Compute the table of potential products associated with 
@@ -63,9 +66,9 @@ computePsi :: Model -> Xs -> Int -> LbIx -> L.LogFloat
 computePsi crf xs i = (A.!) $ A.accumArray (*) 1 bounds
     [ (k, valueL crf ix)
     | ob <- unX (xs V.! i)
-    , (k, ix) <- intersect (obIxs crf ob) (lbVec xs i) ]
+    , (k, ix) <- intersect (obIxs crf ob) (lbVec crf xs i) ]
   where
-    bounds = (0, lbNum xs i - 1)
+    bounds = (0, lbNum crf xs i - 1)
 
 -- | Forward table computation.
 forward :: Model -> Xs -> ProbArray
@@ -74,25 +77,25 @@ forward crf xs = alpha where
         (\t i -> withMem (computePsi crf xs i) t i)
     bounds i
         | i == V.length xs = (0, 0)
-        | otherwise = (0, lbNum xs i - 1)
+        | otherwise = (0, lbNum crf xs i - 1)
     withMem psi alpha i
         | i == V.length xs = const u
         | i == 0 = \j ->
-            let x = lbOn (xs V.! i) j
+            let x = lbOn crf (xs V.! i) j
             in  psi j * sgValue crf x
         | otherwise = \j ->
-            let x = lbOn (xs V.! i) j
+            let x = lbOn crf (xs V.! i) j
             in  psi j * ((u - v x) + w x)
       where
         u = sum
             [ alpha (i-1) k
-            | (k, _) <- lbIxs xs (i-1) ]
+            | (k, _) <- lbIxs crf xs (i-1) ]
         v x = sum
             [ alpha (i-1) k
-            | (k, _) <- intersect (prevIxs crf x) (lbVec xs (i-1)) ]
+            | (k, _) <- intersect (prevIxs crf x) (lbVec crf xs (i-1)) ]
         w x = sum
             [ alpha (i-1) k * valueL crf ix
-            | (k, ix) <- intersect (prevIxs crf x) (lbVec xs (i-1)) ]
+            | (k, ix) <- intersect (prevIxs crf x) (lbVec crf xs (i-1)) ]
 
 -- | Backward table computation.
 backward :: Model -> Xs -> ProbArray
@@ -101,26 +104,26 @@ backward crf xs = beta where
         (\t i -> withMem (computePsi crf xs i) t i)
     bounds i
         | i == 0    = (0, 0)
-        | otherwise = (0, lbNum xs (i-1) - 1)
+        | otherwise = (0, lbNum crf xs (i-1) - 1)
     withMem psi beta i
         | i == V.length xs = const 0
         | i == 0 = const $ sum
             [ beta (i+1) k * psi k
-            * sgValue crf (lbOn (xs V.! i) k)
-            | (k, _) <- lbIxs xs i ]
+            * sgValue crf (lbOn crf (xs V.! i) k)
+            | (k, _) <- lbIxs crf xs i ]
         | otherwise = \j ->
-            let y = lbOn (xs V.! (i-1)) j
+            let y = lbOn crf (xs V.! (i-1)) j
             in  (u - v y) + w y
       where
         u = sum
             [ beta (i+1) k * psi k
-            | (k, _ ) <- lbIxs xs i ]
+            | (k, _ ) <- lbIxs crf xs i ]
         v y = sum
             [ beta (i+1) k * psi k
-            | (k, _ ) <- intersect (nextIxs crf y) (lbVec xs i) ]
+            | (k, _ ) <- intersect (nextIxs crf y) (lbVec crf xs i) ]
         w y = sum
             [ beta (i+1) k * psi k * valueL crf ix
-            | (k, ix) <- intersect (nextIxs crf y) (lbVec xs i) ]
+            | (k, ix) <- intersect (nextIxs crf y) (lbVec crf xs i) ]
 
 zxBeta :: ProbArray -> L.LogFloat
 zxBeta beta = beta 0 0
@@ -144,7 +147,7 @@ marginals crf xs =
     let alpha = forward crf xs
         beta = backward crf xs
     in  [ [ (x, prob1 alpha beta i k)
-          | (k, x) <- lbIxs xs i ]
+          | (k, x) <- lbIxs crf xs i ]
         | i <- [0 .. V.length xs - 1] ]
 
 -- | Get (at most) k best tags for each word and return them in
@@ -214,16 +217,16 @@ expectedFeaturesOn crf alpha beta xs i =
 
     oFeats = [ (ix, pr1 k) 
              | o <- unX (xs V.! i)
-             , (k, ix) <- intersect (obIxs crf o) (lbVec xs i) ]
+             , (k, ix) <- intersect (obIxs crf o) (lbVec crf xs i) ]
 
     tFeats
         | i == 0 = catMaybes
             [ (, pr1 k) <$> featToIx crf (SFeature x)
-            | (k, x) <- lbIxs xs i ]
+            | (k, x) <- lbIxs crf xs i ]
         | otherwise =
             [ (ix, pr2 k l ix)
-            | (k,  x) <- lbIxs xs i
-            , (l, ix) <- intersect (prevIxs crf x) (lbVec xs (i-1)) ]
+            | (k,  x) <- lbIxs crf xs i
+            , (l, ix) <- intersect (prevIxs crf x) (lbVec crf xs (i-1)) ]
 
 -- | A list of features (represented by feature indices) defined within
 -- the context of the sentence accompanied by expected probabilities

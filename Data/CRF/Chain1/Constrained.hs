@@ -38,7 +38,7 @@ import qualified Data.CRF.Chain1.Constrained.Inference as I
 tag :: (Ord a, Ord b) => CRF a b -> Sent a b -> [b]
 tag CRF{..} sent
     = onWords . decodeLabels codec
-    . I.tag model . encodeSent r0 codec
+    . I.tag model . encodeSent codec
     $ sent
   where
     onWords xs =

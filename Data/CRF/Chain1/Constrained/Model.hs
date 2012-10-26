@@ -61,6 +61,8 @@ data Model = Model {
       values    :: U.Vector Double
     -- | A map from features to feature indices
     , ixMap     :: M.Map Feature FeatIx
+    -- | Default set of potential labels.
+    , r0        :: AVec Lb
     -- | Singular feature index for the given label.  Index is equall to -1
     -- if feature is not present in the model.
     , sgIxsV 	:: U.Vector FeatIx
@@ -78,16 +80,18 @@ instance Binary Model where
     put crf = do
         put $ values crf
         put $ ixMap crf
+        put $ r0 crf
         put $ sgIxsV crf
         put $ obIxsV crf
         put $ prevIxsV crf
         put $ nextIxsV crf
-    get = Model <$> get <*> get <*> get <*> get <*> get <*> get
+    get = Model <$> get <*> get <*> get <*> get <*> get <*> get <*> get
 
 -- | Construct CRF model from the associations list.  We assume that
 -- the set of labels is of the {0, 1, .. 'lbMax'} form and, similarly,
 -- the set of observations is of the {0, 1, .. 'obMax'} form.
 -- There should be no repetition of features in the input list.
+-- TODO: We can change this function to take M.Map Feature Double.
 fromList :: [(Feature, Double)] -> Model
 fromList fs =
     let _ixMap = M.fromList $ zip
@@ -99,7 +103,9 @@ fromList fs =
         oFeats = [feat | (feat, _val) <- fs, isOFeat feat]
 
         obMax = (unOb . maximum . Set.toList . obSet) (map fst fs)
-        lbMax = (unLb . maximum . Set.toList . lbSet) (map fst fs)
+        lbs   = (Set.toList . lbSet) (map fst fs)
+        lbMax = (unLb . maximum) lbs
+        _r0   = A.fromList lbs
         
         _sgIxsV = sgVects lbMax
             [ (unLb x, featToJustIx crf feat)
@@ -130,7 +136,7 @@ fromList fs =
         _values = U.replicate (length fs) 0.0
             U.// [ (featToJustInt crf feat, val)
                  | (feat, val) <- fs ]
-        crf = Model _values _ixMap _sgIxsV _obIxsV _prevIxsV _nextIxsV
+        crf = Model _values _ixMap _r0 _sgIxsV _obIxsV _prevIxsV _nextIxsV
     in  crf
 
 -- | Compute the set of observations.

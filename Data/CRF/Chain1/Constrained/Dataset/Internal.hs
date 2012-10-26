@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Data.CRF.Chain1.Constrained.Dataset.Internal
 ( Ob (..)
@@ -58,19 +59,16 @@ fromSet = AVec . U.fromList . S.toList
 
 -- | A word represented by a list of its observations
 -- and a list of its potential label interpretations.
--- TODO: Has the _unR be an ascending vector?
-data X = X
-    { _unX :: AVec Ob
-    , _unR :: AVec Lb }
+data X
+    = X { _unX :: AVec Ob }
+    | R { _unX :: AVec Ob
+        , _unR :: AVec Lb }
     deriving (Show, Read, Eq, Ord)
 
--- | X constructor with first argument beeing the default vector
--- of potential labels.  The default vector is used when the
--- set of potential labels given afterwards is empty and it
--- is provided mainly for the sake of memory efficiency).
-mkX :: AVec Lb -> [Ob] -> [Lb] -> X
-mkX r0 x [] = X (fromList x) r0
-mkX _  x r  = X (fromList x) (fromList r)
+-- | X constructor.
+mkX :: [Ob] -> [Lb] -> X
+mkX x [] = X (fromList x)
+mkX x r  = R (fromList x) (fromList r)
 {-# INLINE mkX #-}
 
 -- | List of observations.
@@ -79,8 +77,9 @@ unX = U.toList . unAVec . _unX
 {-# INLINE unX #-}
 
 -- | List of potential labels.
-unR :: X -> [Lb]
-unR = U.toList . unAVec . _unR
+unR :: AVec Lb -> X -> [Lb]
+unR r0 X{..} = U.toList . unAVec $ r0
+unR _  R{..} = U.toList . unAVec $ _unR
 {-# INLINE unR #-}
 
 -- | Sentence of words.

@@ -14,6 +14,7 @@ module Data.CRF.Chain1.Constrained.Dataset.Codec
 , encodeSentL'Cn
 , encodeSentL
 
+, encodeLabels
 , decodeLabel
 , decodeLabels
 
@@ -75,112 +76,93 @@ encodeLbN x = do
         Nothing -> fromJust <$> C.maybeEncode sndLens Nothing )
 
 -- | Encode the labeled word and update the codec.
-encodeWordL'Cu
-    :: (Ord a, Ord b) => AVec Lb
-    -> WordL a b -> CodecM a b (X, Y)
-encodeWordL'Cu r0 (word, choice) = do
+encodeWordL'Cu :: (Ord a, Ord b) => WordL a b -> CodecM a b (X, Y)
+encodeWordL'Cu (word, choice) = do
     x' <- mapM encodeObU (S.toList (obs word))
     r' <- mapM encodeLbU (S.toList (lbs word))
-    let x = mkX r0 x' r'
+    let x = mkX x' r'
     y  <- mkY <$> sequence
     	[ (,) <$> encodeLbU lb <*> pure pr
 	| (lb, pr) <- (M.toList . unDist) choice ]
     return (x, y)
 
 -- | Encodec the labeled word and do *not* update the codec.
-encodeWordL'Cn
-    :: (Ord a, Ord b) => AVec Lb
-    -> WordL a b -> CodecM a b (X, Y)
-encodeWordL'Cn r0 (word, choice) = do
+encodeWordL'Cn :: (Ord a, Ord b) => WordL a b -> CodecM a b (X, Y)
+encodeWordL'Cn (word, choice) = do
     x' <- catMaybes <$> mapM encodeObN (S.toList (obs word))
     r' <- mapM encodeLbN (S.toList (lbs word))
-    let x = mkX r0 x' r'
+    let x = mkX x' r'
     y  <- mkY <$> sequence
     	[ (,) <$> encodeLbN lb <*> pure pr
 	| (lb, pr) <- (M.toList . unDist) choice ]
     return (x, y)
 
 -- | Encode the word and update the codec.
-encodeWord'Cu :: (Ord a, Ord b) => AVec Lb -> Word a b -> CodecM a b X
-encodeWord'Cu r0 word = do
+encodeWord'Cu :: (Ord a, Ord b) => Word a b -> CodecM a b X
+encodeWord'Cu word = do
     x' <- mapM encodeObU (S.toList (obs word))
     r' <- mapM encodeLbU (S.toList (lbs word))
-    return $ mkX r0 x' r'
+    return $ mkX x' r'
 
 -- | Encode the word and do *not* update the codec.
-encodeWord'Cn :: (Ord a, Ord b) => AVec Lb -> Word a b -> CodecM a b X
-encodeWord'Cn r0 word = do
+encodeWord'Cn :: (Ord a, Ord b) =>Word a b -> CodecM a b X
+encodeWord'Cn word = do
     x' <- catMaybes <$> mapM encodeObN (S.toList (obs word))
     r' <- mapM encodeLbN (S.toList (lbs word))
-    return $ mkX r0 x' r'
+    return $ mkX x' r'
 
 -- | Encode the labeled sentence and update the codec.
-encodeSentL'Cu
-    :: (Ord a, Ord b) => AVec Lb
-    -> SentL a b -> CodecM a b (Xs, Ys)
-encodeSentL'Cu r0 sent = do
-    ps <- mapM (encodeWordL'Cu r0) sent
+encodeSentL'Cu :: (Ord a, Ord b) => SentL a b -> CodecM a b (Xs, Ys)
+encodeSentL'Cu sent = do
+    ps <- mapM (encodeWordL'Cu) sent
     return (V.fromList (map fst ps), V.fromList (map snd ps))
 
 -- | Encode the labeled sentence and do *not* update the codec.
 -- Substitute the default label for any label not present in the codec.
-encodeSentL'Cn
-    :: (Ord a, Ord b) => AVec Lb
-    -> SentL a b -> CodecM a b (Xs, Ys)
-encodeSentL'Cn r0 sent = do
-    ps <- mapM (encodeWordL'Cn r0) sent
+encodeSentL'Cn :: (Ord a, Ord b) => SentL a b -> CodecM a b (Xs, Ys)
+encodeSentL'Cn sent = do
+    ps <- mapM (encodeWordL'Cn) sent
     return (V.fromList (map fst ps), V.fromList (map snd ps))
 
 -- | Encode labels into an ascending vector of distinct label codes.
-encodeLbs :: Ord b => Codec a b -> [b] -> AVec Lb
-encodeLbs codec = fromList . C.evalCodec codec . mapM encodeLbU
-
-encodeR0 :: Ord b => Codec a b -> S.Set b -> AVec Lb
-encodeR0 codec = encodeLbs codec . S.toList
+encodeLabels :: Ord b => Codec a b -> [b] -> AVec Lb
+encodeLabels codec = fromList . C.evalCodec codec . mapM encodeLbN
 
 -- | Encode the labeled sentence with the given codec.  Substitute the
 -- default label for any label not present in the codec.
-encodeSentL
-    :: (Ord a, Ord b) => S.Set b
-    -> Codec a b -> SentL a b -> (Xs, Ys)
-encodeSentL r0 codec = C.evalCodec codec . encodeSentL'Cn (encodeR0 codec r0)
+encodeSentL :: (Ord a, Ord b) => Codec a b -> SentL a b -> (Xs, Ys)
+encodeSentL codec = C.evalCodec codec . encodeSentL'Cn
 
 -- | Encode the sentence and update the codec.
-encodeSent'Cu :: (Ord a, Ord b) => AVec Lb -> Sent a b -> CodecM a b Xs
-encodeSent'Cu r0 = fmap V.fromList . mapM (encodeWord'Cu r0)
+encodeSent'Cu :: (Ord a, Ord b) => Sent a b -> CodecM a b Xs
+encodeSent'Cu = fmap V.fromList . mapM encodeWord'Cu
 
 -- | Encode the sentence and do *not* update the codec.
-encodeSent'Cn :: (Ord a, Ord b) => AVec Lb -> Sent a b -> CodecM a b Xs
-encodeSent'Cn r0 = fmap V.fromList . mapM (encodeWord'Cn r0)
+encodeSent'Cn :: (Ord a, Ord b) => Sent a b -> CodecM a b Xs
+encodeSent'Cn = fmap V.fromList . mapM encodeWord'Cn
 
 -- | Encode the sentence using the given codec.
-encodeSent :: (Ord a, Ord b) => S.Set b -> Codec a b -> Sent a b -> Xs
-encodeSent r0 codec = C.evalCodec codec . encodeSent'Cn (encodeR0 codec r0)
+encodeSent :: (Ord a, Ord b) => Codec a b -> Sent a b -> Xs
+encodeSent codec = C.evalCodec codec . encodeSent'Cn
 
 -- | Create the codec on the basis of the labeled dataset, return the
 -- resultant codec and the encoded dataset.
-mkCodec :: (Ord a, Ord b) => S.Set b -> [SentL a b] -> (Codec a b, [(Xs, Ys)])
-mkCodec r00
+mkCodec :: (Ord a, Ord b) => [SentL a b] -> (Codec a b, [(Xs, Ys)])
+mkCodec
     = swap
-    . C.runCodec codec0
-    . mapM (encodeSentL'Cu r0)
+    . C.runCodec empty
+    . mapM encodeSentL'Cu
   where
     swap (x, y) = (y, x)
-    (r0, codec0) = C.runCodec empty $
-        fromList <$> mapM encodeLbU (S.toList r00)
 
 -- | Encode the labeled dataset using the codec.  Substitute the default
 -- label for any label not present in the codec.
-encodeDataL
-    :: (Ord a, Ord b) => S.Set b
-    -> Codec a b -> [SentL a b] -> [(Xs, Ys)]
-encodeDataL r0 codec =
-    C.evalCodec codec . mapM ( encodeSentL'Cn
-        (encodeR0 codec r0) )
+encodeDataL :: (Ord a, Ord b) => Codec a b -> [SentL a b] -> [(Xs, Ys)]
+encodeDataL codec = C.evalCodec codec . mapM encodeSentL'Cn
 
 -- | Encode the dataset with the codec.
-encodeData :: (Ord a, Ord b) => S.Set b -> Codec a b -> [Sent a b] -> [Xs]
-encodeData r0 codec = map (encodeSent r0 codec)
+encodeData :: (Ord a, Ord b) => Codec a b -> [Sent a b] -> [Xs]
+encodeData codec = map (encodeSent codec)
 
 -- | Decode the label.
 decodeLabel :: Ord b => Codec a b -> Lb -> Maybe b
