@@ -85,8 +85,8 @@ instance Binary Model where
     get = Model <$> get <*> get <*> get <*> get <*> get <*> get
 
 -- | Construct CRF model from the associations list.  We assume that
--- the set of labels is of the {0, 1, .. 'lbNum' - 1} form and, similarly,
--- the set of observations is of the {0, 1, .. 'obNum' - 1} form.
+-- the set of labels is of the {0, 1, .. 'lbMax'} form and, similarly,
+-- the set of observations is of the {0, 1, .. 'obMax'} form.
 -- There should be no repetition of features in the input list.
 fromList :: [(Feature, Double)] -> Model
 fromList fs =
@@ -98,22 +98,22 @@ fromList fs =
         tFeats = [feat | (feat, _val) <- fs, isTFeat feat]
         oFeats = [feat | (feat, _val) <- fs, isOFeat feat]
 
-        lbNum = (Set.size . lbSet) (map fst fs)
-        obNum = (Set.size . obSet) (map fst fs)
+        obMax = (unOb . maximum . Set.toList . obSet) (map fst fs)
+        lbMax = (unLb . maximum . Set.toList . lbSet) (map fst fs)
         
-        _sgIxsV = sgVects lbNum
+        _sgIxsV = sgVects lbMax
             [ (unLb x, featToJustIx crf feat)
             | feat@(SFeature x) <- sFeats ]
 
-        _prevIxsV = adjVects lbNum
+        _prevIxsV = adjVects lbMax
             [ (unLb x, (y, featToJustIx crf feat))
             | feat@(TFeature x y) <- tFeats ]
 
-        _nextIxsV = adjVects lbNum
+        _nextIxsV = adjVects lbMax
             [ (unLb y, (x, featToJustIx crf feat))
             | feat@(TFeature x y) <- tFeats ]
 
-        _obIxsV = adjVects obNum
+        _obIxsV = adjVects obMax
             [ (unOb o, (x, featToJustIx crf feat))
             | feat@(OFeature o x) <- oFeats ]
 
@@ -152,8 +152,8 @@ lbSet =
 
 -- | Construct the model from the list of features.  All parameters will be
 -- set to 0.  There can be repetitions in the input list.
--- We assume that the set of labels is of the {0, 1, .. 'lbNum' - 1} form and,
--- similarly, the set of observations is of the {0, 1, .. 'obNum' - 1} form.
+-- We assume that the set of labels is of the {0, 1, .. 'lbMax'} form and,
+-- similarly, the set of observations is of the {0, 1, .. 'obMax'} form.
 mkModel :: [Feature] -> Model
 mkModel fs =
     let fSet = Set.fromList fs
