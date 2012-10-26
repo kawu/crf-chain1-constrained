@@ -20,6 +20,7 @@ module Data.CRF.Chain1.Constrained.Dataset.Codec
 , mkCodec
 , encodeData
 , encodeDataL
+, unJust
 ) where
 
 import Control.Applicative ((<$>), (<*>), pure)
@@ -131,11 +132,11 @@ encodeSentL'Cn r0 sent = do
     return (V.fromList (map fst ps), V.fromList (map snd ps))
 
 -- | Encode labels into an ascending vector of distinct label codes.
-encodeLbsU :: Ord b => Codec a b -> [b] -> AVec Lb
-encodeLbsU codec = fromList . C.evalCodec codec . mapM encodeLbU
+encodeLbs :: Ord b => Codec a b -> [b] -> AVec Lb
+encodeLbs codec = fromList . C.evalCodec codec . mapM encodeLbU
 
 encodeR0 :: Ord b => Codec a b -> S.Set b -> AVec Lb
-encodeR0 codec = encodeLbsU codec . S.toList
+encodeR0 codec = encodeLbs codec . S.toList
 
 -- | Encode the labeled sentence with the given codec.  Substitute the
 -- default label for any label not present in the codec.
@@ -189,3 +190,17 @@ decodeLabel codec x = C.evalCodec codec $ C.decode sndLens (unLb x)
 decodeLabels :: Ord b => Codec a b -> [Lb] -> [Maybe b]
 decodeLabels codec xs = C.evalCodec codec $
     sequence [C.decode sndLens (unLb x) | x <- xs]
+
+hasLabel :: Ord b => Codec a b -> b -> Bool
+hasLabel codec x = M.member (Just x) (C.to $ snd codec)
+{-# INLINE hasLabel #-}
+
+-- | Return the label when 'Just' or one of the unknown values
+-- when 'Nothing'.
+unJust :: Ord b => Codec a b -> Word a b -> Maybe b -> b
+unJust _ _ (Just x) = x
+unJust codec word Nothing = case xs of
+    (x:_)   -> x
+    []      -> error "unJust: Nothing and all values known"
+  where
+    xs = filter (not . hasLabel codec) (S.toList $ lbs word)

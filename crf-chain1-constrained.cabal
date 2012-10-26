@@ -46,7 +46,8 @@ library
       , sgd >= 0.2.1 && < 0.3
 
     exposed-modules:
-        Data.CRF.Chain1.Constrained.Dataset.Internal
+        Data.CRF.Chain1.Constrained
+      , Data.CRF.Chain1.Constrained.Dataset.Internal
       , Data.CRF.Chain1.Constrained.Dataset.External
       , Data.CRF.Chain1.Constrained.Dataset.Codec
       , Data.CRF.Chain1.Constrained.Feature

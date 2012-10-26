@@ -31,11 +31,13 @@ data CRF a b = CRF {
     -- integer number.
     codec :: Codec a b,
     -- | The actual model, which is a map from 'Feature's to potentials.
-    model :: Model }
+    model :: Model,
+    -- | The set of default potential labels. 
+    r0 :: S.Set b }
 
 instance (Ord a, Ord b, Binary a, Binary b) => Binary (CRF a b) where
-    put CRF{..} = put codec >> put model
-    get = CRF <$> get <*> get
+    put CRF{..} = put codec >> put model >> put r0
+    get = CRF <$> get <*> get <*> get
 
 -- | Train the CRF using the stochastic gradient descent method.
 -- The resulting model will contain features extracted with
@@ -54,16 +56,16 @@ train
     -> IO (CRF a b)                 -- ^ Resulting model
 train sgdArgs trainIO evalIO'Maybe extractFeats = do
     hSetBuffering stdout NoBuffering
-    r0 <- unkSet <$> trainIO
-    (_codec, trainData) <- mkCodec r0 <$> trainIO
+    _r0 <- unkSet <$> trainIO
+    (_codec, trainData) <- mkCodec _r0 <$> trainIO
     evalDataM <- case evalIO'Maybe of
-        Just evalIO -> Just . encodeDataL r0 _codec <$> evalIO
+        Just evalIO -> Just . encodeDataL _r0 _codec <$> evalIO
         Nothing     -> return Nothing
     let crf  = mkModel (extractFeats trainData)
     para <- SGD.sgdM sgdArgs
         (notify sgdArgs crf trainData evalDataM)
         (gradOn crf) (V.fromList trainData) (values crf)
-    return $ CRF _codec (crf { values = para })
+    return $ CRF _codec (crf { values = para }) _r0
 
 -- | Collect labels assigned to unknown words (with empty list
 -- of potential interpretations).
