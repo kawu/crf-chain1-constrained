@@ -6,7 +6,6 @@ module Data.CRF.Chain1.Constrained.Model
 ( FeatIx (..)
 , Model (..)
 , mkModel
-, lbSet
 , valueL
 , featToIx
 , featToJustIx
@@ -62,9 +61,6 @@ data Model = Model {
       values    :: U.Vector Double
     -- | A map from features to feature indices
     , ixMap     :: M.Map Feature FeatIx
-    -- | Number of labels. The label set is of the {0, 1, .., lbNum - 1}
-    -- form, which is guaranteed by the codec.
-    , lbNum 	:: Int
     -- | Singular feature index for the given label.  Index is equall to -1
     -- if feature is not present in the model.
     , sgIxsV 	:: U.Vector FeatIx
@@ -82,49 +78,42 @@ instance Binary Model where
     put crf = do
         put $ values crf
         put $ ixMap crf
-        put $ lbNum crf
         put $ sgIxsV crf
         put $ obIxsV crf
         put $ prevIxsV crf
         put $ nextIxsV crf
-    get = Model <$> get <*> get <*> get <*> get <*> get <*> get <*> get
+    get = Model <$> get <*> get <*> get <*> get <*> get <*> get
 
--- | Construct CRF model from associations list.  There should be
--- no repetition of features in the input list.
+-- | Construct CRF model from the associations list.  We assume that
+-- the set of labels is of the {0, 1, .. 'lbNum' - 1} form and, similarly,
+-- the set of observations is of the {0, 1, .. 'obNum' - 1} form.
+-- There should be no repetition of features in the input list.
 fromList :: [(Feature, Double)] -> Model
 fromList fs =
-    let featLbs (SFeature x) = [x]
-    	featLbs (OFeature _ x) = [x]
-        featLbs (TFeature x y) = [x, y]
-        featObs (OFeature o _) = [o]
-        featObs _ = []
-
-        _ixMap = M.fromList $ zip
+    let _ixMap = M.fromList $ zip
             (map fst fs)
             (map FeatIx [0..])
     
-        _obSet  = nub $ concatMap (featObs . fst) fs
-        _obNum = length _obSet
-        _lbSet = nub $ concatMap (featLbs . fst) fs
-        _lbNum = length _lbSet
-
         sFeats = [feat | (feat, _val) <- fs, isSFeat feat]
         tFeats = [feat | (feat, _val) <- fs, isTFeat feat]
         oFeats = [feat | (feat, _val) <- fs, isOFeat feat]
+
+        lbNum = (Set.size . lbSet) (map fst fs)
+        obNum = (Set.size . obSet) (map fst fs)
         
-        _sgIxsV = sgVects _lbNum
+        _sgIxsV = sgVects lbNum
             [ (unLb x, featToJustIx crf feat)
             | feat@(SFeature x) <- sFeats ]
 
-        _prevIxsV = adjVects _lbNum
+        _prevIxsV = adjVects lbNum
             [ (unLb x, (y, featToJustIx crf feat))
             | feat@(TFeature x y) <- tFeats ]
 
-        _nextIxsV = adjVects _lbNum
+        _nextIxsV = adjVects lbNum
             [ (unLb y, (x, featToJustIx crf feat))
             | feat@(TFeature x y) <- tFeats ]
 
-        _obIxsV = adjVects _obNum
+        _obIxsV = adjVects obNum
             [ (unOb o, (x, featToJustIx crf feat))
             | feat@(OFeature o x) <- oFeats ]
 
@@ -141,28 +130,36 @@ fromList fs =
         _values = U.replicate (length fs) 0.0
             U.// [ (featToJustInt crf feat, val)
                  | (feat, val) <- fs ]
+        crf = Model _values _ixMap _sgIxsV _obIxsV _prevIxsV _nextIxsV
+    in  crf
 
-        checkSet set cont = if set == [0 .. length set - 1]
-            then cont
-            else error "Model.fromList: basic assumption not fulfilled"
+-- | Compute the set of observations.
+obSet :: [Feature] -> Set.Set Ob
+obSet =
+    Set.fromList . concatMap toObs
+  where
+    toObs (OFeature o _) = [o]
+    toObs _              = []
 
-        crf = Model _values _ixMap _lbNum _sgIxsV _obIxsV _prevIxsV _nextIxsV
-    in  checkSet (map unLb _lbSet)
-      . checkSet (map unOb _obSet)
-      $ crf
+-- | Compute the set of labels.
+lbSet :: [Feature] -> Set.Set Lb
+lbSet =
+    Set.fromList . concatMap toLbs
+  where
+    toLbs (SFeature x)   = [x]
+    toLbs (OFeature _ x) = [x]
+    toLbs (TFeature x y) = [x, y]
 
 -- | Construct the model from the list of features.  All parameters will be
--- set to 0.  There may be repetitions in the input list.
+-- set to 0.  There can be repetitions in the input list.
+-- We assume that the set of labels is of the {0, 1, .. 'lbNum' - 1} form and,
+-- similarly, the set of observations is of the {0, 1, .. 'obNum' - 1} form.
 mkModel :: [Feature] -> Model
 mkModel fs =
     let fSet = Set.fromList fs
         fs'  = Set.toList fSet
         vs   = replicate (Set.size fSet) 0.0
     in  fromList (zip fs' vs)
-
--- | List of labels [0 .. 'lbNum' - 1].
-lbSet :: Model -> [Lb]
-lbSet crf = map Lb [0 .. lbNum crf - 1]
 
 -- | Model potential defined for the given feature interpreted as a
 -- number in logarithmic domain.
@@ -222,6 +219,3 @@ nextIxs crf x = nextIxsV crf V.! unLb x
 prevIxs :: Model -> Lb -> AVec LbIx
 prevIxs crf x = prevIxsV crf V.! unLb x
 {-# INLINE prevIxs #-}
-
-nub :: Ord a => [a] -> [a] 
-nub = Set.toList . Set.fromList

@@ -30,7 +30,7 @@ import qualified Data.CRF.Chain1.Constrained.DP as DP
 import Data.CRF.Chain1.Constrained.Util (partition)
 import Data.CRF.Chain1.Constrained.Dataset.Internal
 import Data.CRF.Chain1.Constrained.Feature (Feature(..))
-import Data.CRF.Chain1.Constrained.Model hiding (lbNum)
+import Data.CRF.Chain1.Constrained.Model
 import Data.CRF.Chain1.Constrained.Intersect
 
 type LbIx       = Int
