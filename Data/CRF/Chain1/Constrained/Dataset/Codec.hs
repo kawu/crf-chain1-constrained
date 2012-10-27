@@ -22,6 +22,7 @@ module Data.CRF.Chain1.Constrained.Dataset.Codec
 , encodeData
 , encodeDataL
 , unJust
+, unJusts
 ) where
 
 import Control.Applicative ((<$>), (<*>), pure)
@@ -181,8 +182,18 @@ hasLabel codec x = M.member (Just x) (C.to $ snd codec)
 -- when 'Nothing'.
 unJust :: Ord b => Codec a b -> Word a b -> Maybe b -> b
 unJust _ _ (Just x) = x
-unJust codec word Nothing = case xs of
+unJust codec word Nothing = case allUnk of
     (x:_)   -> x
     []      -> error "unJust: Nothing and all values known"
   where
-    xs = filter (not . hasLabel codec) (S.toList $ lbs word)
+    allUnk = filter (not . hasLabel codec) (S.toList $ lbs word)
+
+-- | Replace 'Nothing' labels with all unknown labels from
+-- the set of potential interpretations.
+unJusts :: Ord b => Codec a b -> Word a b -> [Maybe b] -> [b]
+unJusts codec word xs =
+    concatMap deJust xs
+  where
+    allUnk = filter (not . hasLabel codec) (S.toList $ lbs word)
+    deJust (Just x) = [x]
+    deJust Nothing  = allUnk

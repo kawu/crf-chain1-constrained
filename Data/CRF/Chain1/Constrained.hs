@@ -20,6 +20,7 @@ module Data.CRF.Chain1.Constrained
 , train
 -- ** Tagging
 , tag
+, tagK
 
 -- * Feature selection
 , hiddenFeats
@@ -44,3 +45,16 @@ tag CRF{..} sent
     onWords xs =
         [ unJust codec word x
         | (word, x) <- zip sent xs ]
+
+-- | Determine the most probable label sequence within the context of the
+-- given sentence using the model provided by the 'CRF'.
+tagK :: (Ord a, Ord b) => Int -> CRF a b -> Sent a b -> [[b]]
+tagK k CRF{..} sent
+    = onWords . map decodeChoice
+    . I.tagK k model . encodeSent codec
+    $ sent
+  where
+    decodeChoice = decodeLabels codec . map fst
+    onWords xss =
+        [ take k $ unJusts codec word xs
+        | (word, xs) <- zip sent xss ]

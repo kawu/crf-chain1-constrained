@@ -15,10 +15,12 @@ description:
     of the (sentence, labels) pair.
     .
     Efficient algorithm for determining the marginal probabilities of
-    individual labels is provided.  The argmax algorithm (finding
-    the most probable label sequence satisfying the given constraints)
-    is less efficient, since we cannot use the sparse
-    forward-backward recursions optimization.
+    individual labels is provided.
+    The tagging is performed with respect to marginal probabilities.
+--     The argmax algorithm (finding
+--     the most probable label sequence satisfying the given constraints)
+--     is less efficient, since we cannot use the sparse
+--     forward-backward recursions optimization.
 license:            BSD3
 license-file:       LICENSE
 cabal-version:      >= 1.6
