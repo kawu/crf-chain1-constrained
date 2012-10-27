@@ -1,4 +1,4 @@
-name:               crf-chain-constrained1
+name:               crf-chain1-constrained
 version:            0.1.0
 synopsis:           First-order, constrained, linear-chain conditional random fields
 description:
@@ -29,7 +29,7 @@ author:             Jakub Waszczuk
 maintainer:         waszczuk.kuba@gmail.com
 stability:          experimental
 category:           Math
-homepage:           https://github.com/kawu/crf-chain-constrained1
+homepage:           https://github.com/kawu/crf-chain1-constrained
 build-type:         Simple
 
 library
@@ -68,4 +68,4 @@ library
 
 source-repository head
     type: git
-    location: git://github.com/kawu/crf-chain-constrained1.git
+    location: git://github.com/kawu/crf-chain1-constrained.git
