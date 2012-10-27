@@ -51,8 +51,8 @@ train
     :: (Ord a, Ord b)
     => SGD.SgdArgs                  -- ^ Args for SGD
     -> IO [SentL a b]               -- ^ Training data 'IO' action
-    -> Maybe (IO [SentL a b])       -- ^ Default label and evalation data
-    -> ([(Xs, Ys)] -> [Feature])    -- ^ Feature selection
+    -> Maybe (IO [SentL a b])       -- ^ Maybe evalation data
+    -> (AVec Lb -> [(Xs, Ys)] -> [Feature])     -- ^ Feature selection
     -> IO (CRF a b)                 -- ^ Resulting model
 train sgdArgs trainIO evalIO'Maybe extractFeats = do
     hSetBuffering stdout NoBuffering
@@ -61,7 +61,7 @@ train sgdArgs trainIO evalIO'Maybe extractFeats = do
     evalDataM <- case evalIO'Maybe of
         Just evalIO -> Just . encodeDataL _codec <$> evalIO
         Nothing     -> return Nothing
-    let feats = extractFeats trainData
+    let feats = extractFeats _r0 trainData
         crf = (mkModel feats) { r0 = _r0 }
     para <- SGD.sgdM sgdArgs
         (notify sgdArgs crf trainData evalDataM)

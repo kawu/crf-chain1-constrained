@@ -161,6 +161,9 @@ tagK k crf xs = map
     . sortBy (compare `on` snd)
     ) (marginals crf xs)
 
+-- | Find the most probable label sequence (with probabilities of individual
+-- lables determined with respect to marginal distributions) satisfying the
+-- constraints imposed over label values.
 tag :: Model -> Xs -> [Lb]
 tag crf = map (fst . head) . (tagK 1 crf)
 

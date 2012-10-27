@@ -60,7 +60,9 @@ fromSet = AVec . U.fromList . S.toList
 -- | A word represented by a list of its observations
 -- and a list of its potential label interpretations.
 data X
+    -- | The word with default set of potential interpretations.
     = X { _unX :: AVec Ob }
+    -- | The word with custom set of potential labels.
     | R { _unX :: AVec Ob
         , _unR :: AVec Lb }
     deriving (Show, Read, Eq, Ord)

@@ -19,6 +19,7 @@ import Data.CRF.Chain1.Constrained.Dataset.Internal
 import Data.CRF.Chain1.Constrained.Feature
 
 -- | Hidden 'OFeature's which can be constructed based on the dataset.
+-- The default set of potential interpretations is used for all unknown words.
 hiddenOFeats :: AVec Lb -> [(Xs, b)] -> [Feature]
 hiddenOFeats r0 ds =
     concatMap f ds
@@ -30,6 +31,7 @@ hiddenOFeats r0 ds =
         , y <- unR r0 x ]
 
 -- | Hidden 'TFeature's which can be constructed based on the dataset.
+-- The default set of potential interpretations is used for all unknown words.
 hiddenTFeats :: AVec Lb -> [(Xs, b)] -> [Feature]
 hiddenTFeats r0 ds =
     concatMap (tFeats . fst) ds
@@ -41,13 +43,15 @@ hiddenTFeats r0 ds =
         , y <- unR r0 (xs V.! (k-1)) ]
 
 -- | Hidden 'SFeature's which can be constructed based on the dataset.
+-- The default set of potential interpretations is used for all unknown words.
 hiddenSFeats :: AVec Lb -> [(Xs, b)] -> [Feature]
 hiddenSFeats r0 ds =
     let sFeats xs = [SFeature x | x <- unR r0 (xs V.! 0)]
     in  concatMap (sFeats . fst) ds
 
 -- | Hidden 'Feature's of all types which can be constructed
--- based on the dataset.
+-- on the basis of the dataset.  The default set of potential
+-- interpretations is used for all unknown words.
 hiddenFeats :: AVec Lb -> [(Xs, b)] -> [Feature]
 hiddenFeats r0 ds
     =  hiddenOFeats r0 ds

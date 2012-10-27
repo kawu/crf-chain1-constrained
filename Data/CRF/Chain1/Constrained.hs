@@ -6,7 +6,8 @@
 module Data.CRF.Chain1.Constrained
 (
 -- * Data types
-  Word
+  Word (..)
+, unknown
 , Sent
 , Dist (unDist)
 , mkDist
@@ -46,8 +47,8 @@ tag CRF{..} sent
         [ unJust codec word x
         | (word, x) <- zip sent xs ]
 
--- | Determine the most probable label sequence within the context of the
--- given sentence using the model provided by the 'CRF'.
+-- | Determine the most probable label sets of the given size (at maximum)
+-- for each position in the input sentence.
 tagK :: (Ord a, Ord b) => Int -> CRF a b -> Sent a b -> [[b]]
 tagK k CRF{..} sent
     = onWords . map decodeChoice

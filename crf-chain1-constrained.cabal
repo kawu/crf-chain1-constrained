@@ -4,18 +4,18 @@ synopsis:           First-order, constrained, linear-chain conditional random fi
 description:
     The library provides efficient implementation of the first-order,
     linear-chain conditional random fields (CRFs) with position-wise
-    constraints imposed on label values.
+    constraints imposed over label values.
     .
     It is strongly related to the simpler
-    [crf-chain1](http://hackage.haskell.org/package/crf-chain1)
-    library, where constraints are not taken into account and all
+    <http://hackage.haskell.org/package/crf-chain1>
+    library where constraints are not taken into account and all
     features which are not included in the CRF model are considered to have
     probability of 0.  Here, on the other hand, such features do not influence
-    the overall probability (that is, they are assigned the potential of 0)
-    of the (sentence, labels) pair.
+    the overall probability of the (sentence, labels) pair - they are
+    assigned the default potential of 0.
     .
-    Efficient algorithm for determining the marginal probabilities of
-    individual labels is provided.
+    Efficient algorithm for determining marginal probabilities of individual
+    labels is provided.
     The tagging is performed with respect to marginal probabilities.
 --     The argmax algorithm (finding
 --     the most probable label sequence satisfying the given constraints)

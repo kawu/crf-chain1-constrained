@@ -178,10 +178,14 @@ featToIx :: Model -> Feature -> Maybe FeatIx
 featToIx crf feat = M.lookup feat (ixMap crf)
 {-# INLINE featToIx #-}
 
+-- | Determine index for the given feature.  Throw error when
+-- the feature is not a member of the model. 
 featToJustIx :: Model -> Feature -> FeatIx
 featToJustIx _crf = fromJust . featToIx _crf
 {-# INLINE featToJustIx #-}
 
+-- | Determine index for the given feature and return it as an integer.
+-- Throw error when the feature is not a member of the model.
 featToJustInt :: Model -> Feature -> Int
 featToJustInt _crf = unFeatIx . featToJustIx _crf
 {-# INLINE featToJustInt #-}

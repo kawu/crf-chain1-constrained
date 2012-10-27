@@ -14,11 +14,16 @@ import qualified Data.Map as M
 
 -- | A Word is represented by a set of observations
 -- and a set of potential interpretation labels.
+-- When the set of potential labels is empty the word
+-- is considered to be unknown and the default potential
+-- set is used in its place.
 data Word a b = Word
-    { obs   :: S.Set a
-    , lbs   :: S.Set b }
+    { obs   :: S.Set a  -- ^ The set of observations
+    , lbs   :: S.Set b  -- ^ The set of potential interpretations.
+    } deriving (Show, Eq, Ord)
 
--- | Is the word unknown?
+-- | The word is considered to be unknown when the set of potential
+-- labels is empty.
 unknown :: Word a b -> Bool
 unknown word = S.size (lbs word) == 0
 {-# INLINE unknown #-}
@@ -41,7 +46,7 @@ mkDist =
         in  fmap (/z) dist
 
 -- | A WordL is a labeled word, i.e. a word with probability distribution
--- defined over labels.  We assume, that every label from the distribution
+-- defined over labels.  We assume that every label from the distribution
 -- domain is a member of the set of potential labels corresponding to the
 -- word.  TODO: Ensure the assumption using the smart constructor.
 type WordL a b = (Word a b, Dist b)
