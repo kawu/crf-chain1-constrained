@@ -1,6 +1,8 @@
 module Data.CRF.Chain1.Constrained.Dataset.Codec
 ( Codec
 , CodecM
+, obMax
+, lbMax
 
 , encodeWord'Cu
 , encodeWord'Cn
@@ -39,6 +41,18 @@ import Data.CRF.Chain1.Constrained.Dataset.External
 -- | A codec.  The first component is used to encode observations
 -- of type a, the second one is used to encode labels of type b.
 type Codec a b = (C.AtomCodec a, C.AtomCodec (Maybe b))
+
+-- | The maximum internal observation included in the codec.
+obMax :: Codec a b -> Ob
+obMax =
+    let idMax m = M.size m - 1
+    in  Ob . idMax . C.to . fst
+
+-- | The maximum internal label included in the codec.
+lbMax :: Codec a b -> Lb
+lbMax =
+    let idMax m = M.size m - 1
+    in  Lb . idMax . C.to . snd
 
 -- | The empty codec.  The label part is initialized with Nothing
 -- member, which represents unknown labels.  It is taken on account
@@ -106,7 +120,7 @@ encodeWord'Cu word = do
     return $ mkX x' r'
 
 -- | Encode the word and do *not* update the codec.
-encodeWord'Cn :: (Ord a, Ord b) =>Word a b -> CodecM a b X
+encodeWord'Cn :: (Ord a, Ord b) => Word a b -> CodecM a b X
 encodeWord'Cn word = do
     x' <- catMaybes <$> mapM encodeObN (S.toList (obs word))
     r' <- mapM encodeLbN (S.toList (lbs word))

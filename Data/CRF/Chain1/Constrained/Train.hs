@@ -18,7 +18,7 @@ import qualified Numeric.SGD.LogSigned as L
 import Data.CRF.Chain1.Constrained.Dataset.Internal
 import Data.CRF.Chain1.Constrained.Dataset.External (SentL, unknown, unDist)
 import Data.CRF.Chain1.Constrained.Dataset.Codec
-    (mkCodec, Codec, encodeDataL, encodeLabels)
+    (mkCodec, Codec, obMax, lbMax, encodeDataL, encodeLabels)
 import Data.CRF.Chain1.Constrained.Feature (Feature, featuresIn)
 import Data.CRF.Chain1.Constrained.Model
     (Model (..), mkModel, FeatIx (..), featToJustInt)
@@ -62,7 +62,7 @@ train sgdArgs trainIO evalIO'Maybe extractFeats = do
         Just evalIO -> Just . encodeDataL _codec <$> evalIO
         Nothing     -> return Nothing
     let feats = extractFeats _r0 trainData
-        crf = (mkModel feats) { r0 = _r0 }
+        crf = (mkModel (obMax _codec) (lbMax _codec) feats) { r0 = _r0 }
     para <- SGD.sgdM sgdArgs
         (notify sgdArgs crf trainData evalDataM)
         (gradOn crf) (V.fromList trainData) (values crf)

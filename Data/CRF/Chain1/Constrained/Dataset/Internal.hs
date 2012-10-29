@@ -92,6 +92,8 @@ type Xs = V.Vector X
 -- potential labels for corresponding 'X' word.
 -- TODO: Perhaps we should substitute 'Lb's with label indices
 -- corresponding to labels from the vector of potential labels?
+-- FIXME: The type definition is incorrect (see 'fromList' definition),
+-- it should be something like AVec2.
 newtype Y = Y { _unY :: AVec (Lb, Double) }
     deriving (Show, Read, Eq, Ord)
 

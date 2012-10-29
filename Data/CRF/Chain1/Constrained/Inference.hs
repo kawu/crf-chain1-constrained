@@ -106,7 +106,7 @@ backward crf xs = beta where
         | i == 0    = (0, 0)
         | otherwise = (0, lbNum crf xs (i-1) - 1)
     withMem psi beta i
-        | i == V.length xs = const 0
+        | i == V.length xs = const 1
         | i == 0 = const $ sum
             [ beta (i+1) k * psi k
             * sgValue crf (lbOn crf (xs V.! i) k)

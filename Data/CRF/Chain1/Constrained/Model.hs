@@ -92,8 +92,8 @@ instance Binary Model where
 -- the set of observations is of the {0, 1, .. 'obMax'} form.
 -- There should be no repetition of features in the input list.
 -- TODO: We can change this function to take M.Map Feature Double.
-fromList :: [(Feature, Double)] -> Model
-fromList fs =
+fromList :: Ob -> Lb -> [(Feature, Double)] -> Model
+fromList obMax' lbMax' fs =
     let _ixMap = M.fromList $ zip
             (map fst fs)
             (map FeatIx [0..])
@@ -102,10 +102,13 @@ fromList fs =
         tFeats = [feat | (feat, _val) <- fs, isTFeat feat]
         oFeats = [feat | (feat, _val) <- fs, isOFeat feat]
 
-        obMax = (unOb . maximum . Set.toList . obSet) (map fst fs)
-        lbs   = (Set.toList . lbSet) (map fst fs)
-        lbMax = (unLb . maximum) lbs
-        _r0   = A.fromList lbs
+        obMax = unOb obMax'
+        lbMax = unLb lbMax'
+        _r0   = A.fromList (map Lb [0 .. lbMax])
+        -- obMax = (unOb . maximum . Set.toList . obSet) (map fst fs)
+        -- lbs   = (Set.toList . lbSet) (map fst fs)
+        -- lbMax = (unLb . maximum) lbs
+        -- _r0   = A.fromList lbs
         
         _sgIxsV = sgVects lbMax
             [ (unLb x, featToJustIx crf feat)
@@ -125,13 +128,13 @@ fromList fs =
 
         -- | Adjacency vectors.
         adjVects n xs =
-            V.replicate n (A.fromList []) V.// update
+            V.replicate (n + 1) (A.fromList []) V.// update
           where
             update = map mkVect $ groupBy ((==) `on` fst) $ sort xs
             mkVect (y:ys) = (fst y, A.fromList $ map snd (y:ys))
             mkVect [] = error "mkVect: null list"
 
-        sgVects n xs = U.replicate n dummyFeatIx U.// xs
+        sgVects n xs = U.replicate (n + 1) dummyFeatIx U.// xs
 
         _values = U.replicate (length fs) 0.0
             U.// [ (featToJustInt crf feat, val)
@@ -139,33 +142,33 @@ fromList fs =
         crf = Model _values _ixMap _r0 _sgIxsV _obIxsV _prevIxsV _nextIxsV
     in  crf
 
--- | Compute the set of observations.
-obSet :: [Feature] -> Set.Set Ob
-obSet =
-    Set.fromList . concatMap toObs
-  where
-    toObs (OFeature o _) = [o]
-    toObs _              = []
-
--- | Compute the set of labels.
-lbSet :: [Feature] -> Set.Set Lb
-lbSet =
-    Set.fromList . concatMap toLbs
-  where
-    toLbs (SFeature x)   = [x]
-    toLbs (OFeature _ x) = [x]
-    toLbs (TFeature x y) = [x, y]
+-- -- | Compute the set of observations.
+-- obSet :: [Feature] -> Set.Set Ob
+-- obSet =
+--     Set.fromList . concatMap toObs
+--   where
+--     toObs (OFeature o _) = [o]
+--     toObs _              = []
+-- 
+-- -- | Compute the set of labels.
+-- lbSet :: [Feature] -> Set.Set Lb
+-- lbSet =
+--     Set.fromList . concatMap toLbs
+--   where
+--     toLbs (SFeature x)   = [x]
+--     toLbs (OFeature _ x) = [x]
+--     toLbs (TFeature x y) = [x, y]
 
 -- | Construct the model from the list of features.  All parameters will be
 -- set to 0.  There can be repetitions in the input list.
 -- We assume that the set of labels is of the {0, 1, .. 'lbMax'} form and,
 -- similarly, the set of observations is of the {0, 1, .. 'obMax'} form.
-mkModel :: [Feature] -> Model
-mkModel fs =
+mkModel :: Ob -> Lb -> [Feature] -> Model
+mkModel obMax lbMax fs =
     let fSet = Set.fromList fs
         fs'  = Set.toList fSet
         vs   = replicate (Set.size fSet) 0.0
-    in  fromList (zip fs' vs)
+    in  fromList obMax lbMax (zip fs' vs)
 
 -- | Model potential defined for the given feature interpreted as a
 -- number in logarithmic domain.
