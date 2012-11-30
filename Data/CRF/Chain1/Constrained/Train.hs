@@ -63,7 +63,7 @@ train sgdArgs trainIO evalIO'Maybe extractFeats = do
         Nothing     -> return Nothing
     let feats = extractFeats _r0 trainData
         crf = (mkModel (obMax _codec) (lbMax _codec) feats) { r0 = _r0 }
-    para <- SGD.sgdIO False sgdArgs
+    para <- SGD.sgdM sgdArgs
         (notify sgdArgs crf trainData evalDataM)
         (gradOn crf) (V.fromList trainData) (values crf)
     return $ CRF _codec (crf { values = para })
@@ -79,8 +79,8 @@ unkSet =
         | unknown (fst word)    = M.keys . unDist . snd $ word
         | otherwise             = []
 
-gradOn :: Model -> SGD.Para -> (Xs, Ys) -> SGD.GradGen
-gradOn crf para (xs, ys) =
+gradOn :: Model -> SGD.Para -> (Xs, Ys) -> SGD.Grad
+gradOn crf para (xs, ys) = SGD.fromLogList $
     [ (featToJustInt curr feat, L.fromPos val)
     | (feat, val) <- featuresIn xs ys ] ++
     [ (ix, L.fromNeg val)
