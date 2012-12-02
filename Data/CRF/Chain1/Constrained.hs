@@ -11,7 +11,6 @@ module Data.CRF.Chain1.Constrained
 , Sent
 , Prob (unProb)
 , mkProb
-, mapProb
 , WordL
 , SentL
 
