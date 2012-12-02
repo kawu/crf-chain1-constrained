@@ -16,7 +16,7 @@ import qualified Numeric.SGD as SGD
 import qualified Numeric.SGD.LogSigned as L
 
 import Data.CRF.Chain1.Constrained.Dataset.Internal
-import Data.CRF.Chain1.Constrained.Dataset.External (SentL, unknown, unDist)
+import Data.CRF.Chain1.Constrained.Dataset.External (SentL, unknown, unProb)
 import Data.CRF.Chain1.Constrained.Dataset.Codec
     (mkCodec, Codec, obMax, lbMax, encodeDataL, encodeLabels)
 import Data.CRF.Chain1.Constrained.Feature (Feature, featuresIn)
@@ -76,7 +76,7 @@ unkSet =
   where
     onSent = concatMap onWord
     onWord word
-        | unknown (fst word)    = M.keys . unDist . snd $ word
+        | unknown (fst word)    = M.keys . unProb . snd $ word
         | otherwise             = []
 
 gradOn :: Model -> SGD.Para -> (Xs, Ys) -> SGD.Grad

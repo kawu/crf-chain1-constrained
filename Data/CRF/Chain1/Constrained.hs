@@ -9,10 +9,10 @@ module Data.CRF.Chain1.Constrained
   Word (..)
 , unknown
 , Sent
-, Dist (unDist)
-, mkDist
+, Prob (unProb)
+, mkProb
+, mapProb
 , WordL
-, annotate
 , SentL
 
 -- * CRF

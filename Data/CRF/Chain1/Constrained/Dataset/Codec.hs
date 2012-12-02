@@ -98,7 +98,7 @@ encodeWordL'Cu (word, choice) = do
     let x = mkX x' r'
     y  <- mkY <$> sequence
     	[ (,) <$> encodeLbU lb <*> pure pr
-	| (lb, pr) <- (M.toList . unDist) choice ]
+	| (lb, pr) <- (M.toList . unProb) choice ]
     return (x, y)
 
 -- | Encodec the labeled word and do *not* update the codec.
@@ -109,7 +109,7 @@ encodeWordL'Cn (word, choice) = do
     let x = mkX x' r'
     y  <- mkY <$> sequence
     	[ (,) <$> encodeLbN lb <*> pure pr
-	| (lb, pr) <- (M.toList . unDist) choice ]
+	| (lb, pr) <- (M.toList . unProb) choice ]
     return (x, y)
 
 -- | Encode the word and update the codec.
