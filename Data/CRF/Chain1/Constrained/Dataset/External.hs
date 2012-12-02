@@ -4,12 +4,10 @@ module Data.CRF.Chain1.Constrained.Dataset.External
 , Sent
 , Prob (unProb)
 , mkProb
-, mapProb
 , WordL
 , SentL
 ) where
 
-import Control.Arrow (first)
 import qualified Data.Set as S
 import qualified Data.Map as M
 
@@ -49,10 +47,6 @@ mkProb =
         | otherwise     =
             let z = sum (M.elems dist)
             in  fmap (/z) dist
-
--- | Map function over probability elements. 
-mapProb :: Ord b => (a -> b) -> Prob a -> Prob b
-mapProb f = mkProb . map (first f) . M.toList . unProb
 
 -- | A WordL is a labeled word, i.e. a word with probability distribution
 -- defined over labels.  We assume that every label from the distribution
