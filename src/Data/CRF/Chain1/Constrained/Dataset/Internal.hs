@@ -21,9 +21,10 @@ module Data.CRF.Chain1.Constrained.Dataset.Internal
 , fromSet
 ) where
 
+import Control.Applicative ((<$>), (<*>))
 import Data.Vector.Generic.Base
 import Data.Vector.Generic.Mutable
-import Data.Binary (Binary)
+import Data.Binary (Binary, get, put, putWord8, getWord8)
 import Data.Vector.Binary ()
 import Data.Ix (Ix)
 import qualified Data.Set as S
@@ -39,7 +40,7 @@ newtype Ob = Ob { unOb :: Int }
 newtype Lb = Lb { unLb :: Int }
     deriving ( Show, Read, Eq, Ord, Binary
              , Vector U.Vector, MVector U.MVector, U.Unbox
-	     , Num, Ix )
+	         , Num, Ix )
 
 -- | Ascending vector of unique interger elements.
 newtype AVec a = AVec { unAVec :: U.Vector a }
@@ -66,6 +67,13 @@ data X
     | R { _unX :: AVec Ob
         , _unR :: AVec Lb }
     deriving (Show, Read, Eq, Ord)
+
+instance Binary X where
+    put X{..} = putWord8 0 >> put _unX
+    put R{..} = putWord8 1 >> put _unX >> put _unR
+    get = getWord8 >>= \i -> case i of
+        0   -> X <$> get
+        _   -> R <$> get <*> get
 
 -- | X constructor.
 mkX :: [Ob] -> [Lb] -> X
@@ -95,7 +103,7 @@ type Xs = V.Vector X
 -- FIXME: The type definition is incorrect (see 'fromList' definition),
 -- it should be something like AVec2.
 newtype Y = Y { _unY :: AVec (Lb, Double) }
-    deriving (Show, Read, Eq, Ord)
+    deriving (Show, Read, Eq, Ord, Binary)
 
 -- | Y constructor.
 mkY :: [(Lb, Double)] -> Y

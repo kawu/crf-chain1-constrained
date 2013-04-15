@@ -1,5 +1,5 @@
 name:               crf-chain1-constrained
-version:            0.1.2
+version:            0.2.0
 synopsis:           First-order, constrained, linear-chain conditional random fields
 description:
     The library provides efficient implementation of the first-order,
@@ -33,6 +33,8 @@ homepage:           https://github.com/kawu/crf-chain1-constrained
 build-type:         Simple
 
 library
+    hs-source-dirs: src
+
     build-depends:
         base >= 4 && < 5
       , containers
@@ -45,7 +47,7 @@ library
       , binary
       , vector-binary
       , data-lens
-      , sgd >= 0.2.1 && < 0.3
+      , sgd >= 0.3 && < 0.4
 
     exposed-modules:
         Data.CRF.Chain1.Constrained

@@ -11,7 +11,6 @@ import System.IO (hSetBuffering, stdout, BufferMode (..))
 import Data.Binary (Binary, put, get)
 import qualified Data.Set as S
 import qualified Data.Map as M
-import qualified Data.Vector as V
 import qualified Numeric.SGD as SGD
 import qualified Numeric.SGD.LogSigned as L
 
@@ -50,23 +49,29 @@ instance (Ord a, Ord b, Binary a, Binary b) => Binary (CRF a b) where
 train
     :: (Ord a, Ord b)
     => SGD.SgdArgs                  -- ^ Args for SGD
+    -> Bool                         -- ^ Store dataset on a disk
     -> IO [SentL a b]               -- ^ Training data 'IO' action
     -> Maybe (IO [SentL a b])       -- ^ Maybe evalation data
     -> (AVec Lb -> [(Xs, Ys)] -> [Feature])     -- ^ Feature selection
     -> IO (CRF a b)                 -- ^ Resulting model
-train sgdArgs trainIO evalIO'Maybe extractFeats = do
+train sgdArgs onDisk trainIO evalIO'Maybe extractFeats = do
     hSetBuffering stdout NoBuffering
-    (_codec, trainData) <- mkCodec <$> trainIO
-    _r0 <- encodeLabels _codec . S.toList . unkSet <$> trainIO
-    evalDataM <- case evalIO'Maybe of
-        Just evalIO -> Just . encodeDataL _codec <$> evalIO
-        Nothing     -> return Nothing
-    let feats = extractFeats _r0 trainData
-        crf = (mkModel (obMax _codec) (lbMax _codec) feats) { r0 = _r0 }
-    para <- SGD.sgdM sgdArgs
-        (notify sgdArgs crf trainData evalDataM)
-        (gradOn crf) (V.fromList trainData) (values crf)
-    return $ CRF _codec (crf { values = para })
+
+    (codec, trainData_) <- mkCodec <$> trainIO
+    r0 <- encodeLabels codec . S.toList . unkSet <$> trainIO
+    SGD.withData onDisk trainData_ $ \trainData -> do
+
+    evalData_ <- case evalIO'Maybe of
+        Just evalIO -> encodeDataL codec <$> evalIO
+        Nothing     -> return []
+    SGD.withData onDisk evalData_ $ \evalData -> do
+
+    feats <- extractFeats r0 <$> SGD.loadData trainData
+    let crf = (mkModel (obMax codec) (lbMax codec) feats) { r0 = r0 }
+    para <- SGD.sgd sgdArgs
+        (notify sgdArgs crf trainData evalData)
+        (gradOn crf) trainData (values crf)
+    return $ CRF codec (crf { values = para })
 
 -- | Collect labels assigned to unknown words (with empty list
 -- of potential interpretations).
@@ -89,12 +94,14 @@ gradOn crf para (xs, ys) = SGD.fromLogList $
     curr = crf { values = para }
 
 notify
-    :: SGD.SgdArgs -> Model -> [(Xs, Ys)] -> Maybe [(Xs, Ys)]
+    :: SGD.SgdArgs -> Model
+    -> SGD.Dataset (Xs, Ys)     -- ^ Training dataset
+    -> SGD.Dataset (Xs, Ys)     -- ^ Evaluation dataset
     -> SGD.Para -> Int -> IO ()
-notify SGD.SgdArgs{..} crf trainData evalDataM para k 
+notify SGD.SgdArgs{..} crf trainData evalData para k
     | doneTotal k == doneTotal (k - 1) = putStr "."
-    | Just dataSet <- evalDataM = do
-        let x = accuracy (crf { values = para }) dataSet
+    | SGD.size evalData > 0 = do
+        x <- accuracy (crf { values = para }) <$> SGD.loadData evalData
         putStrLn ("\n" ++ "[" ++ show (doneTotal k) ++ "] f = " ++ show x)
     | otherwise =
         putStrLn ("\n" ++ "[" ++ show (doneTotal k) ++ "] f = #")
@@ -105,4 +112,4 @@ notify SGD.SgdArgs{..} crf trainData evalDataM para k
     done i
         = fromIntegral (i * batchSize)
         / fromIntegral trainSize
-    trainSize = length trainData
+    trainSize = SGD.size trainData
