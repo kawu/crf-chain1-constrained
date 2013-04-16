@@ -64,8 +64,6 @@ train sgdArgs onDisk trainIO evalIO extractFeats = do
 
     -- Create codec and encode the training dataset
     codec <- mkCodec <$> trainIO
-    print $ obMax codec
-    print $ lbMax codec
     trainData_ <- encodeDataL codec <$> trainIO
     SGD.withData onDisk trainData_ $ \trainData -> do
 
