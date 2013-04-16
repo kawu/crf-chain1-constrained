@@ -160,24 +160,18 @@ encodeSent'Cn = fmap V.fromList . mapM encodeWord'Cn
 encodeSent :: (Ord a, Ord b) => Codec a b -> Sent a b -> Xs
 encodeSent codec = C.evalCodec codec . encodeSent'Cn
 
--- | Create the codec on the basis of the labeled dataset, return the
--- resultant codec and the encoded dataset.
-mkCodec :: (Ord a, Ord b) => [SentL a b] -> (Codec a b, [(Xs, Ys)])
-mkCodec
-    = swap
-    . C.runCodec empty
-    . mapM encodeSentL'Cu
-  where
-    swap (x, y) = (y, x)
+-- | Create codec on the basis of the labeled dataset.
+mkCodec :: (Ord a, Ord b) => [SentL a b] -> Codec a b
+mkCodec = C.execCodec empty . mapM_ encodeSentL'Cu
 
 -- | Encode the labeled dataset using the codec.  Substitute the default
 -- label for any label not present in the codec.
 encodeDataL :: (Ord a, Ord b) => Codec a b -> [SentL a b] -> [(Xs, Ys)]
-encodeDataL codec = C.evalCodec codec . mapM encodeSentL'Cn
+encodeDataL = map . encodeSentL
 
 -- | Encode the dataset with the codec.
 encodeData :: (Ord a, Ord b) => Codec a b -> [Sent a b] -> [Xs]
-encodeData codec = map (encodeSent codec)
+encodeData = map . encodeSent
 
 -- | Decode the label.
 decodeLabel :: Ord b => Codec a b -> Lb -> Maybe b

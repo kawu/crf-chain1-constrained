@@ -1,10 +1,12 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE PatternGuards #-}
 
+
 module Data.CRF.Chain1.Constrained.Train
 ( CRF (..)
 , train
 ) where
+
 
 import Control.Applicative ((<$>), (<*>))
 import System.IO (hSetBuffering, stdout, BufferMode (..))
@@ -23,6 +25,7 @@ import Data.CRF.Chain1.Constrained.Model
     (Model (..), mkModel, FeatIx (..), featToJustInt)
 import Data.CRF.Chain1.Constrained.Inference (accuracy, expectedFeaturesIn)
 
+
 -- | A conditional random field model with additional codec used for
 -- data encoding.
 data CRF a b = CRF {
@@ -33,9 +36,11 @@ data CRF a b = CRF {
     -- | The actual model, which is a map from 'Feature's to potentials.
     model :: Model }
 
+
 instance (Ord a, Ord b, Binary a, Binary b) => Binary (CRF a b) where
     put CRF{..} = put codec >> put model
     get = CRF <$> get <*> get
+
 
 -- | Train the CRF using the stochastic gradient descent method.
 -- The resulting model will contain features extracted with
@@ -51,27 +56,36 @@ train
     => SGD.SgdArgs                  -- ^ Args for SGD
     -> Bool                         -- ^ Store dataset on a disk
     -> IO [SentL a b]               -- ^ Training data 'IO' action
-    -> Maybe (IO [SentL a b])       -- ^ Maybe evalation data
+    -> IO [SentL a b]               -- ^ Evaluation data
     -> (AVec Lb -> [(Xs, Ys)] -> [Feature])     -- ^ Feature selection
     -> IO (CRF a b)                 -- ^ Resulting model
-train sgdArgs onDisk trainIO evalIO'Maybe extractFeats = do
+train sgdArgs onDisk trainIO evalIO extractFeats = do
     hSetBuffering stdout NoBuffering
 
-    (codec, trainData_) <- mkCodec <$> trainIO
-    r0 <- encodeLabels codec . S.toList . unkSet <$> trainIO
+    -- Create codec and encode the training dataset
+    codec <- mkCodec <$> trainIO
+    print $ obMax codec
+    print $ lbMax codec
+    trainData_ <- encodeDataL codec <$> trainIO
     SGD.withData onDisk trainData_ $ \trainData -> do
 
-    evalData_ <- case evalIO'Maybe of
-        Just evalIO -> encodeDataL codec <$> evalIO
-        Nothing     -> return []
+    -- Encode the evaluation dataset
+    evalData_ <- encodeDataL codec <$> evalIO
     SGD.withData onDisk evalData_ $ \evalData -> do
 
+    -- A default set of labels
+    r0 <- encodeLabels codec . S.toList . unkSet <$> trainIO
+
+    -- A set of features
     feats <- extractFeats r0 <$> SGD.loadData trainData
-    let crf = (mkModel (obMax codec) (lbMax codec) feats) { r0 = r0 }
+
+    -- Train the model
+    let model = (mkModel (obMax codec) (lbMax codec) feats) { r0 = r0 }
     para <- SGD.sgd sgdArgs
-        (notify sgdArgs crf trainData evalData)
-        (gradOn crf) trainData (values crf)
-    return $ CRF codec (crf { values = para })
+        (notify sgdArgs model trainData evalData)
+        (gradOn model) trainData (values model)
+    return $ CRF codec (model { values = para })
+
 
 -- | Collect labels assigned to unknown words (with empty list
 -- of potential interpretations).
@@ -84,24 +98,26 @@ unkSet =
         | unknown (fst word)    = M.keys . unProb . snd $ word
         | otherwise             = []
 
+
 gradOn :: Model -> SGD.Para -> (Xs, Ys) -> SGD.Grad
-gradOn crf para (xs, ys) = SGD.fromLogList $
+gradOn model para (xs, ys) = SGD.fromLogList $
     [ (featToJustInt curr feat, L.fromPos val)
     | (feat, val) <- featuresIn xs ys ] ++
     [ (ix, L.fromNeg val)
     | (FeatIx ix, val) <- expectedFeaturesIn curr xs ]
   where
-    curr = crf { values = para }
+    curr = model { values = para }
+
 
 notify
     :: SGD.SgdArgs -> Model
     -> SGD.Dataset (Xs, Ys)     -- ^ Training dataset
     -> SGD.Dataset (Xs, Ys)     -- ^ Evaluation dataset
     -> SGD.Para -> Int -> IO ()
-notify SGD.SgdArgs{..} crf trainData evalData para k
+notify SGD.SgdArgs{..} model trainData evalData para k
     | doneTotal k == doneTotal (k - 1) = putStr "."
     | SGD.size evalData > 0 = do
-        x <- accuracy (crf { values = para }) <$> SGD.loadData evalData
+        x <- accuracy (model { values = para }) <$> SGD.loadData evalData
         putStrLn ("\n" ++ "[" ++ show (doneTotal k) ++ "] f = " ++ show x)
     | otherwise =
         putStrLn ("\n" ++ "[" ++ show (doneTotal k) ++ "] f = #")
