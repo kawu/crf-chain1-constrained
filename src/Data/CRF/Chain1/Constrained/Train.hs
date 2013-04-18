@@ -3,8 +3,17 @@
 
 
 module Data.CRF.Chain1.Constrained.Train
-( CRF (..)
+(
+-- * Model
+  CRF (..)
+
+-- * Training
 , train
+
+-- * R0 construction
+, oovChosen
+, anyChosen
+, anyInterps
 ) where
 
 
@@ -17,7 +26,8 @@ import qualified Numeric.SGD as SGD
 import qualified Numeric.SGD.LogSigned as L
 
 import Data.CRF.Chain1.Constrained.Dataset.Internal
-import Data.CRF.Chain1.Constrained.Dataset.External (SentL, unknown, unProb)
+import Data.CRF.Chain1.Constrained.Dataset.External
+    (SentL, WordL, lbs, unknown, unProb)
 import Data.CRF.Chain1.Constrained.Dataset.Codec
     (mkCodec, Codec, obMax, lbMax, encodeDataL, encodeLabels)
 import Data.CRF.Chain1.Constrained.Feature (Feature, featuresIn)
@@ -43,23 +53,23 @@ instance (Ord a, Ord b, Binary a, Binary b) => Binary (CRF a b) where
 
 
 -- | Train the CRF using the stochastic gradient descent method.
+--
 -- The resulting model will contain features extracted with
 -- the user supplied extraction function.
 -- You can use the functions provided by the "Data.CRF.Chain1.Feature.Present"
 -- and "Data.CRF.Chain1.Feature.Hidden" modules for this purpose.
--- When the evaluation data 'IO' action is 'Just', the iterative
--- training process will notify the user about the current accuracy
--- on the evaluation part every full iteration over the training part.
--- TODO: Accept custom r0 construction function.
+--
+-- You also have to supply R0 construction method (e.g. `oovChosen`).
 train
     :: (Ord a, Ord b)
-    => SGD.SgdArgs                  -- ^ Args for SGD
-    -> Bool                         -- ^ Store dataset on a disk
-    -> IO [SentL a b]               -- ^ Training data 'IO' action
-    -> IO [SentL a b]               -- ^ Evaluation data
-    -> (AVec Lb -> [(Xs, Ys)] -> [Feature])     -- ^ Feature selection
-    -> IO (CRF a b)                 -- ^ Resulting model
-train sgdArgs onDisk trainIO evalIO extractFeats = do
+    => SGD.SgdArgs                          -- ^ Args for SGD
+    -> Bool                                 -- ^ Store dataset on a disk
+    -> ([SentL a b] -> S.Set b)             -- ^ R0 construction
+    -> (AVec Lb -> [(Xs, Ys)] -> [Feature]) -- ^ Feature selection
+    -> IO [SentL a b]                       -- ^ Training data 'IO' action
+    -> IO [SentL a b]                       -- ^ Evaluation data
+    -> IO (CRF a b)                         -- ^ Resulting model
+train sgdArgs onDisk mkR0 featSel trainIO evalIO = do
     hSetBuffering stdout NoBuffering
 
     -- Create codec and encode the training dataset
@@ -72,10 +82,10 @@ train sgdArgs onDisk trainIO evalIO extractFeats = do
     SGD.withData onDisk evalData_ $ \evalData -> do
 
     -- A default set of labels
-    r0 <- encodeLabels codec . S.toList . unkSet <$> trainIO
+    r0 <- encodeLabels codec . S.toList . mkR0 <$> trainIO
 
     -- A set of features
-    feats <- extractFeats r0 <$> SGD.loadData trainData
+    feats <- featSel r0 <$> SGD.loadData trainData
 
     -- Train the model
     let model = (mkModel (obMax codec) (lbMax codec) feats) { r0 = r0 }
@@ -83,18 +93,6 @@ train sgdArgs onDisk trainIO evalIO extractFeats = do
         (notify sgdArgs model trainData evalData)
         (gradOn model) trainData (values model)
     return $ CRF codec (model { values = para })
-
-
--- | Collect labels assigned to unknown words (with empty list
--- of potential interpretations).
-unkSet :: Ord b => [SentL a b] -> S.Set b
-unkSet =
-    S.fromList . concatMap onSent
-  where
-    onSent = concatMap onWord
-    onWord word
-        | unknown (fst word)    = M.keys . unProb . snd $ word
-        | otherwise             = []
 
 
 gradOn :: Model -> SGD.Para -> (Xs, Ys) -> SGD.Grad
@@ -127,3 +125,33 @@ notify SGD.SgdArgs{..} model trainData evalData para k
         = fromIntegral (i * batchSize)
         / fromIntegral trainSize
     trainSize = SGD.size trainData
+
+
+------------------------------------------------------
+-- R0 construction
+------------------------------------------------------
+
+
+-- | Collect labels assigned to OOV words.
+oovChosen :: Ord b => [SentL a b] -> S.Set b
+oovChosen = collect onWord where
+    onWord word
+        | unknown (fst word)    = M.keys . unProb . snd $ word
+        | otherwise             = []
+
+
+-- | Collect labels assigned to words in a dataset.
+anyChosen :: Ord b => [SentL a b] -> S.Set b
+anyChosen = collect $ M.keys . unProb . snd
+
+
+-- | Collect interpretations (also labels assigned) of words in a dataset.
+anyInterps :: Ord b => [SentL a b] -> S.Set b
+anyInterps = S.union
+    <$> collect (S.toList . lbs . fst)
+    <*> anyChosen
+
+
+-- | Collect labels given function which selects labels from a word.
+collect :: Ord b => (WordL a b -> [b]) -> [SentL a b] -> S.Set b
+collect onWord = S.fromList . concatMap (concatMap onWord)

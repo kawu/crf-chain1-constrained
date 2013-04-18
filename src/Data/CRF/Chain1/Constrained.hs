@@ -14,17 +14,14 @@ module Data.CRF.Chain1.Constrained
 , WordL
 , SentL
 
--- * CRF
-, CRF (..)
--- ** Training
-, train
 -- ** Tagging
 , tag
 , tagK
 
--- * Feature selection
-, hiddenFeats
-, presentFeats
+-- * Modules
+, module Data.CRF.Chain1.Constrained.Train
+, module Data.CRF.Chain1.Constrained.Feature.Present
+, module Data.CRF.Chain1.Constrained.Feature.Hidden
 ) where
 
 import Data.CRF.Chain1.Constrained.Dataset.External
