@@ -1,3 +1,6 @@
+{-# LANGUAGE RecordWildCards #-}
+
+
 module Data.CRF.Chain1.Constrained.Dataset.Codec
 ( Codec
 , CodecM
@@ -92,24 +95,24 @@ encodeLbN x = do
 
 -- | Encode the labeled word and update the codec.
 encodeWordL'Cu :: (Ord a, Ord b) => WordL a b -> CodecM a b (X, Y)
-encodeWordL'Cu (word, choice) = do
-    x' <- mapM encodeObU (S.toList (obs word))
-    r' <- mapM encodeLbU (S.toList (lbs word))
+encodeWordL'Cu w = do
+    x' <- mapM encodeObU $ S.toList $ obs $ word w
+    r' <- mapM encodeLbU $ S.toList $ lbs $ word w
     let x = mkX x' r'
     y  <- mkY <$> sequence
     	[ (,) <$> encodeLbU lb <*> pure pr
-	| (lb, pr) <- (M.toList . unProb) choice ]
+	| (lb, pr) <- (M.toList . unProb) (choice w) ]
     return (x, y)
 
 -- | Encodec the labeled word and do *not* update the codec.
 encodeWordL'Cn :: (Ord a, Ord b) => WordL a b -> CodecM a b (X, Y)
-encodeWordL'Cn (word, choice) = do
-    x' <- catMaybes <$> mapM encodeObN (S.toList (obs word))
-    r' <- mapM encodeLbN (S.toList (lbs word))
+encodeWordL'Cn w = do
+    x' <- fmap catMaybes . mapM encodeObN . S.toList . obs $ word w
+    r' <- mapM encodeLbN . S.toList . lbs $ word w
     let x = mkX x' r'
     y  <- mkY <$> sequence
     	[ (,) <$> encodeLbN lb <*> pure pr
-	| (lb, pr) <- (M.toList . unProb) choice ]
+	| (lb, pr) <- (M.toList . unProb) (choice w) ]
     return (x, y)
 
 -- | Encode the word and update the codec.

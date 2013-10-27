@@ -54,14 +54,15 @@ notDummy :: FeatIx -> Bool
 notDummy = not . isDummy
 {-# INLINE notDummy #-}
 
--- | The model is realy a map from features to potentials, but for the sake
--- of efficiency the internal representation is more complex.
+-- | The model is actually a map from features to their respective potentials,
+-- but for the sake of efficiency the internal representation is more complex.
 data Model = Model {
     -- | Value (potential) of the model for feature index.
       values    :: U.Vector Double
     -- | A map from features to feature indices
     , ixMap     :: M.Map Feature FeatIx
-    -- | Default set of potential labels.
+    -- | A default set of labels.  It is used on sentence positions for which
+    -- no constraints are assigned.
     , r0        :: AVec Lb
     -- | Singular feature index for the given label.  Index is equall to -1
     -- if feature is not present in the model.

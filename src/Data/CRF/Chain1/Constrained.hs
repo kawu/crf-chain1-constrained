@@ -11,7 +11,8 @@ module Data.CRF.Chain1.Constrained
 , Sent
 , Prob (unProb)
 , mkProb
-, WordL
+, WordL (word, choice)
+, mkWordL
 , SentL
 
 -- ** Tagging

@@ -4,7 +4,8 @@ module Data.CRF.Chain1.Constrained.Dataset.External
 , Sent
 , Prob (unProb)
 , mkProb
-, WordL
+, WordL (word, choice)
+, mkWordL
 , SentL
 ) where
 
@@ -24,7 +25,7 @@ data Word a b = Word
 -- | The word is considered to be unknown when the set of potential
 -- labels is empty.
 unknown :: Word a b -> Bool
-unknown word = S.size (lbs word) == 0
+unknown x = S.size (lbs x) == 0
 {-# INLINE unknown #-}
 
 -- | A sentence of words.
@@ -48,11 +49,21 @@ mkProb =
             let z = sum (M.elems dist)
             in  fmap (/z) dist
 
+
 -- | A WordL is a labeled word, i.e. a word with probability distribution
 -- defined over labels.  We assume that every label from the distribution
 -- domain is a member of the set of potential labels corresponding to the
--- word.  TODO: Ensure the assumption using the smart constructor.
-type WordL a b = (Word a b, Prob b)
+-- word.  Use the `mkWordL` smart constructor to build `WordL`.
+data WordL a b = WordL
+    { word      :: Word a b
+    , choice    :: Prob b }
+
+
+-- | Ensure, that every label from the distribution domain is a member
+-- of the set of potential labels corresponding to the word.
+mkWordL :: Word a b -> Prob b -> WordL a b
+mkWordL = WordL
+
 
 -- | A sentence of labeled words.
 type SentL a b = [WordL a b]
