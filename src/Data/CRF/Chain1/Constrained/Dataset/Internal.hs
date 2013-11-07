@@ -42,7 +42,7 @@ newtype Lb = Lb { unLb :: Int }
              , Vector U.Vector, MVector U.MVector, U.Unbox
 	         , Num, Ix )
 
--- | Ascending vector of unique interger elements.
+-- | An ascending vector of unique elements.
 newtype AVec a = AVec { unAVec :: U.Vector a }
     deriving (Show, Read, Eq, Ord, Binary)
 
@@ -55,7 +55,7 @@ fromList = fromSet . S.fromList
 -- | Smart AVec constructor which ensures that the
 -- underlying vector satisfies the AVec properties.
 fromSet :: (Ord a, U.Unbox a) => S.Set a -> AVec a
-fromSet = AVec . U.fromList . S.toList 
+fromSet = AVec . U.fromList . S.toAscList
 {-# INLINE fromSet #-}
 
 -- | A word represented by a list of its observations
@@ -93,6 +93,7 @@ unR _  R{..} = U.toList . unAVec $ _unR
 {-# INLINE unR #-}
 
 -- | Sentence of words.
+-- TODO: Change to DAG.
 type Xs = V.Vector X
 
 -- | Probability distribution over labels.  We assume, that when y is
@@ -117,3 +118,26 @@ unY = U.toList . unAVec . _unY
 
 -- | Sentence of Y (label choices).
 type Ys = V.Vector Y
+
+
+------------------------------------------------------------------
+-- DAG representation 
+------------------------------------------------------------------
+--
+-- First of all, nodes represent division places of the input text
+-- (i.e., they point to places *between* two adjacent characters).
+--
+-- Therefore, segments (or tokens) are represented by graph edges.
+-- An edge consists of:
+-- * An analysis of the corresponding segment,
+-- * Nodes (or their identifiers) between which the edge spans.
+--
+-- Query operations available on DAGs:
+-- * Return nodes with respect to the topological order (in both
+--   directions?)
+-- * List all edges (in/out)going from the particular node.
+--
+-- It should be possible to make something like a context-sensitive
+-- fmap, which will make it possible to:
+-- * Translate individual edge values to feature vectors,
+-- * Translate edge values to forward/backward probabilities.

@@ -1,5 +1,5 @@
 name:               crf-chain1-constrained
-version:            0.3.0
+version:            0.4.0
 synopsis:           First-order, constrained, linear-chain conditional random fields
 description:
     The library provides efficient implementation of the first-order,
@@ -8,11 +8,11 @@ description:
     .
     It is strongly related to the simpler
     <http://hackage.haskell.org/package/crf-chain1>
-    library where constraints are not taken into account and all
-    features which are not included in the CRF model are considered to have
-    probability of 0.  Here, on the other hand, such features do not influence
-    the overall probability of the (sentence, labels) pair - they are
-    assigned the default potential of 0.
+    library where constraints are not taken into account and all features
+    which are not included in the CRF model are considered to have
+    probability of 0.  Here, on the other hand, such features do not
+    influence the overall probability of the (sentence, labels) pair
+    - they are assigned the default potential of 0.
     .
     Efficient algorithm for determining marginal probabilities of individual
     labels is provided.
@@ -36,18 +36,18 @@ library
     hs-source-dirs: src
 
     build-depends:
-        base >= 4 && < 5
-      , containers
-      , vector
-      , array
-      , random
-      , parallel
-      , logfloat
-      , monad-codec >= 0.2 && < 0.3
-      , binary
-      , vector-binary
-      , data-lens
-      , sgd >= 0.3.2 && < 0.4
+        base                    >= 4        && < 5
+      , containers              >= 0.4      && < 0.6
+      , vector                  >= 0.10     && < 0.11
+      , array                   >= 0.4      && < 0.5
+      , random                  >= 1.0      && < 1.1
+      , parallel                >= 3.2      && < 3.3
+      , logfloat                >= 0.12     && < 0.13
+      , monad-codec             >= 0.2      && < 0.3
+      , binary                  >= 0.5      && < 0.6
+      , vector-binary           >= 0.1      && < 0.2
+      , data-lens               >= 2.10     && < 2.11
+      , sgd                     >= 0.3.3    && < 0.4
 
     exposed-modules:
         Data.CRF.Chain1.Constrained
