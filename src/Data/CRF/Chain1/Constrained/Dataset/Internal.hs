@@ -121,8 +121,12 @@ type Ys = V.Vector Y
 
 
 ------------------------------------------------------------------
--- DAG representation 
+-- DAG representation
 ------------------------------------------------------------------
+--
+-- Naming proposals:
+-- * lattice
+-- * edge-dag
 --
 -- First of all, nodes represent division places of the input text
 -- (i.e., they point to places *between* two adjacent characters).
@@ -141,3 +145,10 @@ type Ys = V.Vector Y
 -- fmap, which will make it possible to:
 -- * Translate individual edge values to feature vectors,
 -- * Translate edge values to forward/backward probabilities.
+--
+-- Misc operations:
+-- * Join DAG with a particular path of words (morphological analysis
+--   will result with a DAG, while disambiguated sentence is just
+--   a sequence of morphosyntactic tags refering to a particular path
+--   in the DAG), or more general:
+-- * Join DAG with a DAG.
