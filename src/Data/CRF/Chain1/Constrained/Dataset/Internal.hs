@@ -1,5 +1,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Data.CRF.Chain1.Constrained.Dataset.Internal
 ( Ob (..)
@@ -30,17 +33,19 @@ import Data.Ix (Ix)
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
+import           Data.Vector.Unboxed.Deriving
 
 -- | An observation.
 newtype Ob = Ob { unOb :: Int }
-    deriving ( Show, Read, Eq, Ord, Binary
-             , Vector U.Vector, MVector U.MVector, U.Unbox )
+    deriving ( Show, Read, Eq, Ord, Binary )
+--           GeneralizedNewtypeDeriving doesn't work for this in 7.8.2:
+--           , Vector U.Vector, MVector U.MVector, U.Unbox )
+derivingUnbox "Ob" [t| Ob -> Int |] [| unOb |] [| Ob |]
 
 -- | A label.
 newtype Lb = Lb { unLb :: Int }
-    deriving ( Show, Read, Eq, Ord, Binary
-             , Vector U.Vector, MVector U.MVector, U.Unbox
-	         , Num, Ix )
+    deriving ( Show, Read, Eq, Ord, Binary, Num, Ix )
+derivingUnbox "Lb" [t| Lb -> Int |] [| unLb |] [| Lb |]
 
 -- | Ascending vector of unique interger elements.
 newtype AVec a = AVec { unAVec :: U.Vector a }
