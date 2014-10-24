@@ -36,18 +36,19 @@ library
     hs-source-dirs: src
 
     build-depends:
-        base >= 4 && < 5
+        base                >= 4        && < 5
       , containers
       , vector
       , array
       , random
       , parallel
       , logfloat
-      , monad-codec >= 0.2 && < 0.3
+      , monad-codec         >= 0.2      && < 0.3
       , binary
       , vector-binary
       , data-lens
-      , sgd >= 0.3.2 && < 0.4
+      , sgd                 >= 0.3.2    && < 0.4
+      , vector-th-unbox     >= 0.2.1    && < 0.3
 
     exposed-modules:
         Data.CRF.Chain1.Constrained
