@@ -39,6 +39,7 @@ import Data.CRF.Chain1.Constrained.Dataset.Internal hiding (fromList)
 import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as A
 
 -- | A feature index.  To every model feature a unique index is assigned.
+-- It is equall to -1 if there is no corresponding feature in the model.
 newtype FeatIx = FeatIx { unFeatIx :: Int }
     deriving ( Show, Eq, Ord, Binary )
 derivingUnbox "FeatIx" [t| FeatIx -> Int |] [| unFeatIx |] [| FeatIx |]
@@ -204,8 +205,7 @@ featToJustInt _crf = unFeatIx . featToJustIx _crf
 sgValue :: Model -> Lb -> L.LogFloat
 sgValue crf (Lb x) = 
     case unFeatIx (sgIxsV crf U.! x) of
-        -- TODO: Is the value correct?
-        -1 -> L.logToLogFloat (0 :: Float)
+        -1 -> L.logToLogFloat (0 :: Double)
         ix -> L.logToLogFloat (values crf U.! ix)
 
 -- | List of labels which can be located on the first position of
