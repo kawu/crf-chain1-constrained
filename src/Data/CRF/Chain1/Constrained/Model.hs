@@ -1,4 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- | Internal implementation of the CRF model.
 
@@ -29,15 +32,17 @@ import qualified Data.Map as M
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector as V
 import qualified Data.Number.LogFloat as L
+import           Data.Vector.Unboxed.Deriving
 
 import Data.CRF.Chain1.Constrained.Feature
 import Data.CRF.Chain1.Constrained.Dataset.Internal hiding (fromList)
 import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as A
 
 -- | A feature index.  To every model feature a unique index is assigned.
+-- It is equall to -1 if there is no corresponding feature in the model.
 newtype FeatIx = FeatIx { unFeatIx :: Int }
-    deriving ( Show, Eq, Ord, Binary
-             , G.Vector U.Vector, G.MVector U.MVector, U.Unbox )
+    deriving ( Show, Eq, Ord, Binary )
+derivingUnbox "FeatIx" [t| FeatIx -> Int |] [| unFeatIx |] [| FeatIx |]
 
 -- | A label and a feature index determined by that label.
 type LbIx   = (Lb, FeatIx)
@@ -200,8 +205,7 @@ featToJustInt _crf = unFeatIx . featToJustIx _crf
 sgValue :: Model -> Lb -> L.LogFloat
 sgValue crf (Lb x) = 
     case unFeatIx (sgIxsV crf U.! x) of
-        -- TODO: Is the value correct?
-        -1 -> L.logToLogFloat (0 :: Float)
+        -1 -> L.logToLogFloat (0 :: Double)
         ix -> L.logToLogFloat (values crf U.! ix)
 
 -- | List of labels which can be located on the first position of
