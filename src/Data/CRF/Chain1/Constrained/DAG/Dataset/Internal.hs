@@ -21,6 +21,7 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 , prevEdges
 , isInitialEdge
 , isInitialNode
+, nextEdges
 
 -- * Advanced Operations
 , dagNodes
@@ -121,6 +122,11 @@ isInitialEdge edgeID = null . prevEdges edgeID
 -- | Is the given node initial?
 isInitialNode :: NodeID -> DAG a b -> Bool
 isInitialNode nodeID = null . ingoingEdges nodeID
+
+
+-- | The list of the succeding edges of the given edge.
+nextEdges :: EdgeID -> DAG a b -> [EdgeID]
+nextEdges _edgeID _dag = undefined
 
 
 ------------------------------------------------------------------

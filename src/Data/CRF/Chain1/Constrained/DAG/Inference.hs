@@ -235,7 +235,40 @@ forward crf dag = alpha where
 --         w y = sum
 --             [ beta (i+1) k * psi k * valueL crf ix
 --             | (k, ix) <- intersect (nextIxs crf y) (lbVec crf xs i) ]
--- 
+
+-- | Backward table computation.
+backward :: Md.Model -> DAG a X -> ProbArray
+backward crf dag = beta where
+  beta = DP.flexible2 (-1, DAG.edgeMax dag) bounds
+    (\t i -> withMem (computePsi crf dag i) t i)
+  bounds i
+      | i == (-1) = (0, 0)
+      | otherwise = (0, lbNum crf dag i - 1)
+  withMem psi beta i
+      | i == DAG.edgeMax dag = const 1
+--       | i == (-1) = const $ sum
+--           [ beta (i+1) k * psi k
+--           * sgValue crf (lbOn crf (xs V.! i) k)
+--           | (k, _) <- lbIxs crf xs i ]
+      | otherwise = \j ->
+          -- let y = lbOn crf (xs V.! i) j
+          let y = lbOn crf (DAG.edgeLabel i dag) j
+          in  (u - v y) + w y
+    where
+      u = sum
+          [ beta iPlus1 k * psi k
+          | (k, _ ) <- lbIxs crf dag i
+          , iPlus1 <- DAG.nextEdges i dag ]
+      v y = sum
+          [ beta iPlus1 k * psi k
+          | (k, _ ) <- I.intersect (Md.nextIxs crf y) (lbVec crf dag i)
+          , iPlus1 <- DAG.nextEdges i dag ]
+      w y = sum
+          [ beta iPlus1 k * psi k * Md.valueL crf ix
+          | (k, ix) <- I.intersect (Md.nextIxs crf y) (lbVec crf dag i)
+          , iPlus1 <- DAG.nextEdges i dag ]
+
+
 -- zxBeta :: ProbArray -> L.LogFloat
 -- zxBeta beta = beta 0 0
 -- 
