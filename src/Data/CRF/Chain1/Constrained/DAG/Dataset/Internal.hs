@@ -1,3 +1,6 @@
+{-# LANGUAGE DeriveFunctor #-}
+
+
 module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 (
 -- * Types
@@ -13,8 +16,14 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 , nodeLabel
 , edgeLabel
 
+-- * Intermediate Operations
+, prevEdges
+, isInitialEdge
+, isInitialNode
+
 -- * Advanced Operations
 , topoOrder
+, topoOrder'
 ) where
 
 
@@ -26,6 +35,7 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 -- | A directed acyclic graph (DAG) with nodes of type `a` and
 -- edges of type `b`.
 data DAG a b = DAG
+  deriving (Functor)
 
 
 -- | Node ID.
@@ -72,10 +82,40 @@ edgeLabel = undefined
 
 
 ------------------------------------------------------------------
+-- Intermediate Operations
+------------------------------------------------------------------
+
+
+-- | The list of the preceding edges of the given edge.
+prevEdges :: EdgeID -> DAG a b -> [EdgeID]
+prevEdges edgeID dag =
+  let tailNodeID = begsWith edgeID dag
+  in  ingoingEdges tailNodeID dag
+
+
+-- | Is the given edge initial?
+isInitialEdge :: EdgeID -> DAG a b -> Bool
+isInitialEdge edgeID = null . prevEdges edgeID
+
+
+-- | Is the given node initial?
+isInitialNode :: NodeID -> DAG a b -> Bool
+isInitialNode nodeID = null . ingoingEdges nodeID
+
+
+------------------------------------------------------------------
 -- Advanced Operations
 ------------------------------------------------------------------
 
 
--- | The list of DAG nodes in their topoligocal order.
+-- | The list of DAG nodes in their topological order.
 topoOrder :: DAG a b -> [NodeID]
 topoOrder = undefined
+
+
+-- | The list of DAG edges in the topological order.
+topoOrder' :: DAG a b -> [EdgeID]
+topoOrder' dag =
+  [ edgeID
+  | nodeID <- topoOrder dag
+  , edgeID <- outgoingEdges nodeID dag ]

@@ -17,8 +17,7 @@ trFeats edgeID dag =
   doit
   where
     edgeLabel = DAG.edgeLabel edgeID dag
-    tailNode  = DAG.begsWith edgeID dag
-    prevEdges = DAG.ingoingEdges tailNode dag
+    prevEdges = DAG.prevEdges edgeID dag
     doit
       | null prevEdges =
         [ (C.SFeature x, L.logFloat px)
@@ -51,15 +50,4 @@ features edgeID dag = trFeats edgeID dag ++ obFeats edgeID dag
 featuresIn :: DAG a (X, Y) -> [(Feature, L.LogFloat)]
 featuresIn dag = concat
   [ features edgeID dag
-  | nodeID <- DAG.topoOrder dag
-  , edgeID <- DAG.outgoingEdges nodeID dag ]
-
-
-
--- -- | All features with assigned probabilities for given position.
--- features :: Xs -> Ys -> Int -> [(Feature, L.LogFloat)]
--- features xs ys k = trFeats ys k ++ obFeats xs ys k
--- 
--- -- | All features with assigned probabilities in given labeled sentence.
--- featuresIn :: Xs -> Ys -> [(Feature, L.LogFloat)]
--- featuresIn xs ys = concatMap (features xs ys) [0 .. V.length xs - 1]
+  | edgeID <- DAG.topoOrder' dag ]

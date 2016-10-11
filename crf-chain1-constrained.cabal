@@ -65,6 +65,7 @@ library
 
       , Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
       , Data.CRF.Chain1.Constrained.DAG.Feature
+      , Data.CRF.Chain1.Constrained.DAG.Feature.Present
 
     other-modules:
         Data.CRF.Chain1.Constrained.DP
