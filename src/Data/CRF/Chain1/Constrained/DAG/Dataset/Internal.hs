@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 
 module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
@@ -22,9 +23,13 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 , isInitialNode
 
 -- * Advanced Operations
-, topoOrder
-, topoOrder'
+, dagNodes
+, dagEdges
+, edgeMax
 ) where
+
+
+import qualified Data.Array as A
 
 
 ------------------------------------------------------------------
@@ -40,10 +45,25 @@ data DAG a b = DAG
 
 -- | Node ID.
 data NodeID = NodeID
+  deriving (Show, Eq, Ord)
 
 
--- | Edge ID.
-data EdgeID = EdgeID
+-- | ID of an edge. The following properties must be satisfied by `EdgeID`:
+--
+--   * The ordering of edge IDs (`Ord` instance) is consistent with the
+--     topological ordering of the edges.
+--   * The smallest `EdgeID` of a given DAG is equal to `0` (`EdgeID 0`).
+--
+-- Additional important property, which guarantees that inference computations
+-- over the DAG, based on dynamic programming, are efficient:
+--
+--   * Let `e` be the greatest `EdgeID` in the DAG. Then, the set of `EdgeID`s
+--     in the DAG is equal to {0 .. e}.
+--
+-- However, this last property is not required for the correcntess of the
+-- inference computations, only for their memory complexity.
+newtype EdgeID = EdgeID {_unEdgeID :: Int}
+  deriving (Show, Eq, Ord, Num, A.Ix)
 
 
 ------------------------------------------------------------------
@@ -108,14 +128,19 @@ isInitialNode nodeID = null . ingoingEdges nodeID
 ------------------------------------------------------------------
 
 
--- | The list of DAG nodes in their topological order.
-topoOrder :: DAG a b -> [NodeID]
-topoOrder = undefined
+-- | The list of DAG nodes.
+dagNodes :: DAG a b -> [NodeID]
+dagNodes = undefined
 
 
--- | The list of DAG edges in the topological order.
-topoOrder' :: DAG a b -> [EdgeID]
-topoOrder' dag =
+-- | The list of DAG edges.
+dagEdges :: DAG a b -> [EdgeID]
+dagEdges dag =
   [ edgeID
-  | nodeID <- topoOrder dag
+  | nodeID <- dagNodes dag
   , edgeID <- outgoingEdges nodeID dag ]
+
+
+-- | The greatest `EdgeID` in the DAG.
+edgeMax :: DAG a b -> EdgeID
+edgeMax = maximum . dagEdges

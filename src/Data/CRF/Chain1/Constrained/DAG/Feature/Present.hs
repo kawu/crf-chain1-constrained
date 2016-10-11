@@ -11,7 +11,6 @@ module Data.CRF.Chain1.Constrained.DAG.Feature.Present
 ) where
 
 
-
 import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, Feature)
 import qualified Data.CRF.Chain1.Constrained.Core as C
 import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
@@ -25,7 +24,7 @@ presentOFeats =
   where
     sentOFeats dag =
       [ C.OFeature o x
-      | edgeID <- DAG.topoOrder' dag
+      | edgeID <- DAG.dagEdges dag
       , let edgeLabel = DAG.edgeLabel edgeID dag
       , o <- C.unX (fst edgeLabel)
       , x <- lbs (snd edgeLabel) ]
@@ -38,7 +37,7 @@ presentTFeats =
   where
     sentTFeats dag =
       [ C.TFeature x y
-      | edgeID <- DAG.topoOrder' dag
+      | edgeID <- DAG.dagEdges dag
       , x <- lbs (DAG.edgeLabel edgeID dag)
       , prevEdgeID <- DAG.prevEdges edgeID dag
       , y <- lbs (DAG.edgeLabel prevEdgeID dag) ]
@@ -51,7 +50,7 @@ presentSFeats =
   where
     sentSFeats dag =
       [ C.SFeature x
-      | edgeID <- DAG.topoOrder' dag
+      | edgeID <- DAG.dagEdges dag
       , DAG.isInitialEdge edgeID dag
       , x <- lbs (DAG.edgeLabel edgeID dag) ]
 
@@ -64,6 +63,6 @@ presentFeats ds
     ++ presentSFeats (map (fmap snd) ds)
 
 
--- | Retrieve the domain of the given probability distribution represented.
+-- | Retrieve the domain of the given probability distribution.
 lbs :: Y -> [Lb]
 lbs = map fst . C.unY

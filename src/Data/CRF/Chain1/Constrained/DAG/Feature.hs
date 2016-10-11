@@ -50,4 +50,4 @@ features edgeID dag = trFeats edgeID dag ++ obFeats edgeID dag
 featuresIn :: DAG a (X, Y) -> [(Feature, L.LogFloat)]
 featuresIn dag = concat
   [ features edgeID dag
-  | edgeID <- DAG.topoOrder' dag ]
+  | edgeID <- DAG.dagEdges dag ]
