@@ -6,59 +6,14 @@ module Data.CRF.Chain1.Constrained.Feature
 , featuresIn
 ) where
 
-import Data.Binary (Binary, Get, put, get)
-import Control.Applicative ((<*>), (<$>))
+
+-- import Data.Binary (Binary, Get, put, get)
+-- import Control.Applicative ((<*>), (<$>))
 import qualified Data.Vector as V
 import qualified Data.Number.LogFloat as L
 
 import Data.CRF.Chain1.Constrained.Dataset.Internal
 
--- | A Feature is either an observation feature OFeature o x, which
--- models relation between observation o and label x assigned to
--- the same word, or a transition feature TFeature x y (SFeature x
--- for the first position in the sentence), which models relation
--- between two subsequent labels, x (on i-th position) and y
--- (on (i-1)-th positoin).
-data Feature
-    = SFeature
-        {-# UNPACK #-} !Lb
-    | TFeature
-        {-# UNPACK #-} !Lb
-        {-# UNPACK #-} !Lb
-    | OFeature
-        {-# UNPACK #-} !Ob
-        {-# UNPACK #-} !Lb
-    deriving (Show, Eq, Ord)
-
-instance Binary Feature where
-    put (SFeature x)   = put (0 :: Int) >> put x
-    put (TFeature x y) = put (1 :: Int) >> put (x, y)
-    put (OFeature o x) = put (2 :: Int) >> put (o, x)
-    get = do
-        k <- get :: Get Int
-        case k of
-            0 -> SFeature <$> get
-            1 -> TFeature <$> get <*> get
-            2 -> OFeature <$> get <*> get
-	    _ -> error "Binary Feature: unknown identifier"
-
--- | Is it a 'SFeature'?
-isSFeat :: Feature -> Bool
-isSFeat (SFeature _) = True
-isSFeat _            = False
-{-# INLINE isSFeat #-}
-
--- | Is it an 'OFeature'?
-isOFeat :: Feature -> Bool
-isOFeat (OFeature _ _) = True
-isOFeat _              = False
-{-# INLINE isOFeat #-}
-
--- | Is it a 'TFeature'?
-isTFeat :: Feature -> Bool
-isTFeat (TFeature _ _) = True
-isTFeat _              = False
-{-# INLINE isTFeat #-}
 
 -- | Transition features with assigned probabilities for given position.
 trFeats :: Ys -> Int -> [(Feature, L.LogFloat)]

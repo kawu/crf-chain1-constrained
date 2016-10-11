@@ -73,7 +73,7 @@ data Model = Model {
     -- if feature is not present in the model.
     , sgIxsV 	:: U.Vector FeatIx
     -- | Set of labels for the given observation which, together with the
-    -- observation, constitute an observation feature of the model. 
+    -- observation, constitute an observation feature of the model.
     , obIxsV    :: V.Vector (AVec LbIx)
     -- | Set of ,,previous'' labels for the value of the ,,current'' label.
     -- Both labels constitute a transition feature present in the the model.

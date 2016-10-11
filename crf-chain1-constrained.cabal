@@ -52,6 +52,7 @@ library
 
     exposed-modules:
         Data.CRF.Chain1.Constrained
+      , Data.CRF.Chain1.Constrained.Core
       , Data.CRF.Chain1.Constrained.Dataset.Internal
       , Data.CRF.Chain1.Constrained.Dataset.External
       , Data.CRF.Chain1.Constrained.Dataset.Codec
@@ -61,6 +62,9 @@ library
       , Data.CRF.Chain1.Constrained.Model
       , Data.CRF.Chain1.Constrained.Inference
       , Data.CRF.Chain1.Constrained.Train
+
+      , Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
+      , Data.CRF.Chain1.Constrained.DAG.Feature
 
     other-modules:
         Data.CRF.Chain1.Constrained.DP
