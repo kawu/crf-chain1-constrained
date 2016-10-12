@@ -367,10 +367,13 @@ expectedFeaturesIn crf dag = zxF `par` zxB `pseq` zxF `pseq`
     zxB = zxBeta dag beta
 
 
-goodAndBad :: Md.Model -> DAG a X -> DAG b Y -> (Int, Int)
-goodAndBad crf xs ys =
+-- goodAndBad :: Md.Model -> DAG a X -> DAG b Y -> (Int, Int)
+goodAndBad :: Md.Model -> DAG a (X, Y) -> (Int, Int)
+goodAndBad crf dag =
     F.foldl' gather (0, 0) $ DAG.zipE labels labels'
   where
+    xs = fmap fst dag
+    ys = fmap snd dag
     labels = fmap (best . C.unY) ys
     best zs
         | null zs   = Nothing
@@ -381,14 +384,14 @@ goodAndBad crf xs ys =
         | otherwise = (good, bad + 1)
 
 
-goodAndBad' :: Md.Model -> [(DAG a X, DAG b Y)] -> (Int, Int)
+goodAndBad' :: Md.Model -> [DAG a (X, Y)] -> (Int, Int)
 goodAndBad' crf dataset =
     let add (g, b) (g', b') = (g + g', b + b')
-    in  F.foldl' add (0, 0) [goodAndBad crf x y | (x, y) <- dataset]
+    in  F.foldl' add (0, 0) [goodAndBad crf x | x <- dataset]
 
 
 -- | Compute the accuracy of the model with respect to the labeled dataset.
-accuracy :: Md.Model -> [(DAG a X, DAG b Y)] -> Double
+accuracy :: Md.Model -> [DAG a (X, Y)] -> Double
 accuracy crf dataset =
     let k = numCapabilities
     	parts = partition k dataset

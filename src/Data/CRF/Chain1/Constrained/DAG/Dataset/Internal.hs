@@ -33,11 +33,20 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 -- * Advanced Operations
 , dagNodes
 , dagEdges
+
+
+-- * Conversion
+, fromList
 ) where
 
 
 import qualified Data.Foldable as F
 import qualified Data.Array as A
+import qualified Data.Vector as V
+
+import Data.Binary (Binary, get, put, putWord8, getWord8)
+import Data.Vector.Binary ()
+-- import qualified Data.Binary as B
 
 
 ------------------------------------------------------------------
@@ -49,6 +58,11 @@ import qualified Data.Array as A
 -- edges of type `b`.
 data DAG a b = DAG
   deriving (Functor, F.Foldable)
+
+
+instance (Binary a, Binary b) => Binary (DAG a b) where
+  put = undefined
+  get = undefined
 
 
 -- | Node ID.
@@ -177,3 +191,13 @@ dagEdges dag =
   [ edgeID
   | nodeID <- dagNodes dag
   , edgeID <- outgoingEdges nodeID dag ]
+
+
+------------------------------------------------------------------
+-- Conversion
+------------------------------------------------------------------
+
+
+-- | Convert a sequence of items to a trivial DAG.
+fromList :: [a] -> DAG () a
+fromList = undefined
