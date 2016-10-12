@@ -9,7 +9,7 @@ module Data.CRF.Chain1.Constrained.DAG.Inference
 ( tag
 , tagK
 , marginals
--- , accuracy
+, accuracy
 , expectedFeaturesIn
 , zx
 , zx'
@@ -21,8 +21,9 @@ import Data.Maybe (catMaybes)
 import Data.List (maximumBy, sortBy)
 import Data.Function (on)
 import qualified Data.Array as A
-import qualified Data.Vector as V
+-- import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
+import qualified Data.Foldable as F
 
 import Control.Parallel.Strategies (rseq, parMap)
 import Control.Parallel (par, pseq)
@@ -40,9 +41,9 @@ import qualified Data.CRF.Chain1.Constrained.DP as DP
 import           Data.CRF.Chain1.Constrained.Util (partition)
 import qualified Data.CRF.Chain1.Constrained.Model as Md
 
-import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, Feature, AVec)
+import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, AVec)
 import qualified Data.CRF.Chain1.Constrained.Core as C
-import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (NodeID, EdgeID, DAG)
+import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (EdgeID, DAG)
 import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 import qualified Data.CRF.Chain1.Constrained.Intersect as I
 
@@ -286,8 +287,8 @@ marginals crf dag =
   DAG.mapE label dag
   where
     label edgeID _ =
-      [ (label, prob1 edgeID labID)
-      | (labID, label) <- lbIxs crf dag edgeID ]
+      [ (lab, prob1 edgeID labID)
+      | (labID, lab) <- lbIxs crf dag edgeID ]
     prob1 = edgeProb1 dag alpha beta
     alpha = forward crf dag
     beta = backward crf dag
@@ -348,7 +349,7 @@ expectedFeaturesOn crf dag alpha beta iEdgeID =
 
 -- | A list of features (represented by feature indices) defined within
 -- the context of the sentence accompanied by expected probabilities
--- determined on the basis of the model. 
+-- determined on the basis of the model.
 --
 -- One feature can occur multiple times in the output list.
 expectedFeaturesIn
@@ -366,31 +367,32 @@ expectedFeaturesIn crf dag = zxF `par` zxB `pseq` zxF `pseq`
     zxB = zxBeta dag beta
 
 
--- goodAndBad :: Model -> Xs -> Ys -> (Int, Int)
--- goodAndBad crf xs ys =
---     foldl gather (0, 0) $ zip labels labels'
---   where
---     labels  = [ (best . unY) (ys V.! i)
---               | i <- [0 .. V.length ys - 1] ]
---     best zs
---         | null zs   = Nothing
---         | otherwise = Just . fst $ maximumBy (compare `on` snd) zs
---     labels' = map Just $ tag crf xs
---     gather (good, bad) (x, y)
---         | x == y = (good + 1, bad)
---         | otherwise = (good, bad + 1)
--- 
--- goodAndBad' :: Model -> [(Xs, Ys)] -> (Int, Int)
--- goodAndBad' crf dataset =
---     let add (g, b) (g', b') = (g + g', b + b')
---     in  foldl add (0, 0) [goodAndBad crf x y | (x, y) <- dataset]
--- 
--- -- | Compute the accuracy of the model with respect to the labeled dataset.
--- accuracy :: Model -> [(Xs, Ys)] -> Double
--- accuracy crf dataset =
---     let k = numCapabilities
---     	parts = partition k dataset
---         xs = parMap rseq (goodAndBad' crf) parts
---         (good, bad) = foldl add (0, 0) xs
---         add (g, b) (g', b') = (g + g', b + b')
---     in  fromIntegral good / fromIntegral (good + bad)
+goodAndBad :: Md.Model -> DAG a X -> DAG b Y -> (Int, Int)
+goodAndBad crf xs ys =
+    F.foldl' gather (0, 0) $ DAG.zipE labels labels'
+  where
+    labels = fmap (best . C.unY) ys
+    best zs
+        | null zs   = Nothing
+        | otherwise = Just . fst $ maximumBy (compare `on` snd) zs
+    labels' = fmap Just $ tag crf xs
+    gather (good, bad) (x, y)
+        | x == y = (good + 1, bad)
+        | otherwise = (good, bad + 1)
+
+
+goodAndBad' :: Md.Model -> [(DAG a X, DAG b Y)] -> (Int, Int)
+goodAndBad' crf dataset =
+    let add (g, b) (g', b') = (g + g', b + b')
+    in  F.foldl' add (0, 0) [goodAndBad crf x y | (x, y) <- dataset]
+
+
+-- | Compute the accuracy of the model with respect to the labeled dataset.
+accuracy :: Md.Model -> [(DAG a X, DAG b Y)] -> Double
+accuracy crf dataset =
+    let k = numCapabilities
+    	parts = partition k dataset
+        xs = parMap rseq (goodAndBad' crf) parts
+        (good, bad) = F.foldl' add (0, 0) xs
+        add (g, b) (g', b') = (g + g', b + b')
+    in  fromIntegral good / fromIntegral (good + bad)

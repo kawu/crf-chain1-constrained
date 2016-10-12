@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 
@@ -27,6 +28,7 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 , maxEdge
 
 , mapE
+, zipE
 
 -- * Advanced Operations
 , dagNodes
@@ -34,6 +36,7 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 ) where
 
 
+import qualified Data.Foldable as F
 import qualified Data.Array as A
 
 
@@ -45,7 +48,7 @@ import qualified Data.Array as A
 -- | A directed acyclic graph (DAG) with nodes of type `a` and
 -- edges of type `b`.
 data DAG a b = DAG
-  deriving (Functor)
+  deriving (Functor, F.Foldable)
 
 
 -- | Node ID.
@@ -148,7 +151,14 @@ maxEdge = maximum . dagEdges
 -- | Similar to `fmap` but the mapping function has access to IDs of the
 -- individual edges.
 mapE :: (EdgeID -> b -> c) -> DAG a b -> DAG a c
-mapE f dag = undefined
+mapE _f _dag = undefined
+
+
+-- | Zip labels assigned to the same edges in the two input DAGs. Node labels
+-- from the first DAG are preserved. The function fails if the input DAGs
+-- contain different sets of edge IDs or node IDs.
+zipE :: DAG a b -> DAG x c -> DAG a (b, c)
+zipE = undefined
 
 
 ------------------------------------------------------------------
