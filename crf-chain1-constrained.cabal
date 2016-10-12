@@ -63,6 +63,7 @@ library
       , Data.CRF.Chain1.Constrained.Inference
       , Data.CRF.Chain1.Constrained.Train
 
+      , Data.CRF.Chain1.Constrained.DAG
       , Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
       , Data.CRF.Chain1.Constrained.DAG.Feature
       , Data.CRF.Chain1.Constrained.DAG.Feature.Present

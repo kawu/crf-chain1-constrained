@@ -37,6 +37,8 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 
 -- * Conversion
 , fromList
+-- ** Provisional
+, toListProv
 
 -- * Check
 , isOK
@@ -261,8 +263,8 @@ nextEdges edgeID dag =
 
 
 -- | Convert a sequence of items to a trivial DAG.
-fromList :: [a] -> DAG () a
-fromList xs = DAG
+_fromList :: [a] -> DAG () a
+_fromList xs = DAG
   { nodeMap = M.unions [begNodeMap, middleNodeMap, endNodeMap]
   , edgeMap = newEdgeMap }
   where
@@ -297,13 +299,36 @@ fromList xs = DAG
       return (EdgeID i, edge)
 
 
+-- | Convert a sequence of items to a trivial DAG. Afterwards, check if the
+-- resulting DAG is well-structured and throw error if not.
+fromList :: [a] -> DAG () a
+fromList xs =
+  if isOK dag
+  then dag
+  else error "fromList: resulting DAG not `isOK`"
+  where
+    dag = _fromList xs
+
+
+------------------------------------------------------------------
+-- Provisional
+------------------------------------------------------------------
+
+
+-- | Convert the DAG to a list, provided that it was constructed from a list,
+-- which is not checked.
+toListProv :: DAG () a -> [a]
+toListProv DAG{..} =
+  [ edLabel edge
+  | (_edgeID, edge) <- M.toAscList edgeMap ]
+
 
 ------------------------------------------------------------------
 -- Check
 ------------------------------------------------------------------
 
 
--- | Check if everything is OK with the DAG.
+-- | Check if the DAG is well-structured.
 isOK :: DAG a b -> Bool
 isOK DAG{..} =
   nodeMapOK && edgeMapOK
