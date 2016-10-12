@@ -26,6 +26,8 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 , minEdge
 , maxEdge
 
+, mapE
+
 -- * Advanced Operations
 , dagNodes
 , dagEdges
@@ -141,6 +143,13 @@ minEdge _ = 0
 -- TODO: This must be computed quickly.
 maxEdge :: DAG a b -> EdgeID
 maxEdge = maximum . dagEdges
+
+
+-- | Similar to `fmap` but the mapping function has access to IDs of the
+-- individual edges.
+mapE :: (EdgeID -> b -> c) -> DAG a b -> DAG a c
+mapE f dag = undefined
+
 
 ------------------------------------------------------------------
 -- Advanced Operations
