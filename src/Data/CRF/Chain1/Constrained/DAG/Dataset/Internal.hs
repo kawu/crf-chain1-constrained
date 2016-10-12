@@ -23,10 +23,12 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 , isInitialNode
 , nextEdges
 
+, minEdge
+, maxEdge
+
 -- * Advanced Operations
 , dagNodes
 , dagEdges
-, edgeMax
 ) where
 
 
@@ -53,7 +55,8 @@ data NodeID = NodeID
 --
 --   * The ordering of edge IDs (`Ord` instance) is consistent with the
 --     topological ordering of the edges.
---   * The smallest `EdgeID` of a given DAG is equal to `0` (`EdgeID 0`).
+--   * The smallest `EdgeID` of a given DAG, `minEdge`, is equal
+--     to `0` (`EdgeID 0`).
 --
 -- Additional important property, which guarantees that inference computations
 -- over the DAG, based on dynamic programming, are efficient:
@@ -129,6 +132,16 @@ nextEdges :: EdgeID -> DAG a b -> [EdgeID]
 nextEdges _edgeID _dag = undefined
 
 
+-- | The greatest `EdgeID` in the DAG.
+minEdge :: DAG a b -> EdgeID
+minEdge _ = 0
+
+
+-- | The greatest `EdgeID` in the DAG.
+-- TODO: This must be computed quickly.
+maxEdge :: DAG a b -> EdgeID
+maxEdge = maximum . dagEdges
+
 ------------------------------------------------------------------
 -- Advanced Operations
 ------------------------------------------------------------------
@@ -145,8 +158,3 @@ dagEdges dag =
   [ edgeID
   | nodeID <- dagNodes dag
   , edgeID <- outgoingEdges nodeID dag ]
-
-
--- | The greatest `EdgeID` in the DAG.
-edgeMax :: DAG a b -> EdgeID
-edgeMax = maximum . dagEdges

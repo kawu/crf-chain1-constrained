@@ -136,6 +136,7 @@ lbIxs crf dag = zip [0..] . U.toList . C.unAVec . lbVec crf dag
 --   where
 --     bounds = (0, lbNum crf xs i - 1)
 
+
 -- | Compute the table of potential products associated with observation
 -- features for the given sentence edge.
 computePsi :: Md.Model -> DAG a X -> EdgeID -> LbIx -> L.LogFloat
@@ -145,6 +146,20 @@ computePsi crf dag i = (A.!) $ A.accumArray (*) 1 bounds
     , (k, ix) <- I.intersect (Md.obIxs crf ob) (lbVec crf dag i) ]
   where
     bounds = (0, lbNum crf dag i - 1)
+
+
+-- | Equivalent to `computePsi`, but memoizes additionally on `EdgeID`s.
+computePsi'
+  :: Md.Model -> DAG a X
+  -> EdgeID -> LbIx
+  -> L.LogFloat
+computePsi' crf dag =
+  (array A.!)
+  where
+    bounds = (DAG.minEdge dag, DAG.maxEdge dag)
+    array = A.array bounds
+      [ (i, computePsi crf dag i)
+      | i <- A.range bounds ]
 
 
 -- -- | Forward table computation.
@@ -177,14 +192,15 @@ computePsi crf dag i = (A.!) $ A.accumArray (*) 1 bounds
 -- | Forward table computation.
 forward :: Md.Model -> DAG a X -> ProbArray
 forward crf dag = alpha where
-  alpha = DP.flexible2 (0, DAG.edgeMax dag + 1) bounds
+  alpha = DP.flexible2 bounds boundsOn
     (\t i -> withMem (computePsi crf dag i) t i)
-  bounds i
-    | i == DAG.edgeMax dag + 1 = (0, 0)
+  bounds = (DAG.minEdge dag, DAG.maxEdge dag + 1)
+  boundsOn i
+    | i == snd bounds = (0, 0)
     | otherwise = (0, lbNum crf dag i - 1)
   withMem psi alpha i
-    | i == DAG.edgeMax dag + 1 = const u
-    | i == 0 = \j ->
+    | i == snd bounds = const u
+    | i == fst bounds = \j ->
         let x = lbOn crf (DAG.edgeLabel i dag) j
         in  psi j * Md.sgValue crf x
     | otherwise = \j ->
@@ -239,34 +255,48 @@ forward crf dag = alpha where
 -- | Backward table computation.
 backward :: Md.Model -> DAG a X -> ProbArray
 backward crf dag = beta where
-  beta = DP.flexible2 (-1, DAG.edgeMax dag) bounds
-    (\t i -> withMem (computePsi crf dag i) t i)
-  bounds i
-      | i == (-1) = (0, 0)
-      | otherwise = (0, lbNum crf dag i - 1)
-  withMem psi beta i
-      | i == DAG.edgeMax dag = const 1
---       | i == (-1) = const $ sum
---           [ beta (i+1) k * psi k
---           * sgValue crf (lbOn crf (xs V.! i) k)
---           | (k, _) <- lbIxs crf xs i ]
-      | otherwise = \j ->
-          -- let y = lbOn crf (xs V.! i) j
-          let y = lbOn crf (DAG.edgeLabel i dag) j
-          in  (u - v y) + w y
+  beta = DP.flexible2 bounds boundsOn withMem
+  bounds = (DAG.minEdge dag - 1, DAG.maxEdge dag)
+  boundsOn i
+    | i == fst bounds = (0, 0)
+    | otherwise = (0, lbNum crf dag i - 1)
+  psi = computePsi' crf dag
+  withMem beta i
+    | i == snd bounds = const 1
+    | i == fst bounds = const $ sum
+      [ beta iPlus1 k * psi iPlus1 k
+        * Md.sgValue crf (lbOn crf (DAG.edgeLabel iPlus1 dag) k)
+      | iPlus1 <- DAG.dagEdges dag
+      , DAG.isInitialEdge iPlus1 dag
+      , (k, _) <- lbIxs crf dag iPlus1 ]
+    | otherwise = \j ->
+        let y = lbOn crf (DAG.edgeLabel i dag) j
+        in  (u - v y) + w y
     where
+      -- Note that here `i` is an identifier of the current DAG edge.
+      -- Instead of simply adding `1` to `i` (i.e., `i + 1`),
+      -- we need to find the identifiers of the succeeding edges.
       u = sum
-          [ beta iPlus1 k * psi k
-          | (k, _ ) <- lbIxs crf dag i
-          , iPlus1 <- DAG.nextEdges i dag ]
+        [ beta iPlus1 k * psi iPlus1 k
+        | iPlus1 <- DAG.nextEdges i dag
+        , (k, _ ) <- lbIxs crf dag iPlus1 ]
+      -- `y` is the label on position `i`, we are looking for
+      -- matching labels on the position `i+1`.
       v y = sum
-          [ beta iPlus1 k * psi k
-          | (k, _ ) <- I.intersect (Md.nextIxs crf y) (lbVec crf dag i)
-          , iPlus1 <- DAG.nextEdges i dag ]
+        [ beta iPlus1 k * psi iPlus1 k
+        | iPlus1 <- DAG.nextEdges i dag
+        , (k, _ ) <- I.intersect (Md.nextIxs crf y) (lbVec crf dag iPlus1) ]
+      -- `y` is the label on position `i`, we are looking for
+      -- matching labels on the position `i+1`.
       w y = sum
-          [ beta iPlus1 k * psi k * Md.valueL crf ix
-          | (k, ix) <- I.intersect (Md.nextIxs crf y) (lbVec crf dag i)
-          , iPlus1 <- DAG.nextEdges i dag ]
+        [ beta iPlus1 k * psi iPlus1 k * Md.valueL crf ix
+        | iPlus1 <- DAG.nextEdges i dag
+        , (k, ix) <- I.intersect (Md.nextIxs crf y) (lbVec crf dag iPlus1) ]
+
+
+
+
+
 
 
 -- zxBeta :: ProbArray -> L.LogFloat
