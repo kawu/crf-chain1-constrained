@@ -7,19 +7,18 @@
 
 
 module Data.CRF.Chain1.Constrained.DAG.Train
-() where
--- (
--- -- * Model
---   CRF (..)
--- 
--- -- * Training
--- , train
--- 
--- -- * R0 construction
--- , oovChosen
--- , anyChosen
--- , anyInterps
--- ) where
+(
+-- * Model
+  CRF (..)
+
+-- * Training
+, train
+
+-- * R0 construction
+, oovChosen
+, anyChosen
+, anyInterps
+) where
 
 
 import Control.Applicative ((<$>), (<*>))
@@ -40,7 +39,7 @@ import qualified Numeric.SGD.LogSigned as L
 -- import Data.CRF.Chain1.Constrained.Inference (accuracy, expectedFeaturesIn)
 
 import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, AVec, Feature)
-import qualified Data.CRF.Chain1.Constrained.Core as C
+-- import qualified Data.CRF.Chain1.Constrained.Core as C
 import qualified Data.CRF.Chain1.Constrained.Model as Md
 import qualified Data.CRF.Chain1.Constrained.Dataset.Codec as Cd
 import qualified Data.CRF.Chain1.Constrained.Dataset.External as E
@@ -51,7 +50,7 @@ import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as Int
 -- import           Data.CRF.Chain1.Constrained.Dataset.External
 --     (SentL, WordL (..), lbs, unknown, unProb)
 
-import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (EdgeID, DAG)
+import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
 import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 import           Data.CRF.Chain1.Constrained.DAG.Feature (featuresIn)
 import qualified Data.CRF.Chain1.Constrained.DAG.Inference as I -- (accuracy, expectedFeaturesIn)
