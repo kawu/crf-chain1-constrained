@@ -138,7 +138,7 @@ forward crf dag = alpha where
     | i == snd bounds = (0, 0)
     | otherwise = (0, lbNum crf dag i - 1)
   withMem psi alpha i
-    | i == snd bounds = const u
+    | i == snd bounds = const u'
     | i == fst bounds = \j ->
         let x = lbOn crf (DAG.edgeLabel i dag) j
         in  psi j * Md.sgValue crf x
@@ -146,9 +146,6 @@ forward crf dag = alpha where
         let x = lbOn crf (DAG.edgeLabel i dag) j
         in  psi j * ((u - v x) + w x)
     where
-      -- Note that here `i` is an identifier of the current DAG edge.
-      -- Instead of simply substracting `1` from `i` (i.e., `i - 1`),
-      -- we need to find the identifiers of the preceding edges.
       u = sum
         [ alpha iMinus1 k
         | iMinus1 <- DAG.prevEdges i dag
@@ -161,6 +158,14 @@ forward crf dag = alpha where
         [ alpha iMinus1 k * Md.valueL crf ix
         | iMinus1 <- DAG.prevEdges i dag
         , (k, ix) <- I.intersect (Md.prevIxs crf x) (lbVec crf dag iMinus1) ]
+      -- Note that if `i == snd bounds` then `i` does not refer to any existing
+      -- edge, hence the need to introduce `u'` which does almost the same thing
+      -- as `u`.
+      u' = sum
+        [ alpha iMinus1 k
+        | iMinus1 <- DAG.dagEdges dag
+        , DAG.isFinalEdge iMinus1 dag
+        , (k, _) <- lbIxs crf dag iMinus1 ]
 
 
 -- | Backward table computation.

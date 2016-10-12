@@ -22,8 +22,9 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 -- * Intermediate Operations
 , prevEdges
 , isInitialEdge
-, isInitialNode
+-- , isInitialNode
 , nextEdges
+, isFinalEdge
 
 , minEdge
 , maxEdge
@@ -245,9 +246,9 @@ isInitialEdge :: EdgeID -> DAG a b -> Bool
 isInitialEdge edgeID = null . prevEdges edgeID
 
 
--- | Is the given node initial?
-isInitialNode :: NodeID -> DAG a b -> Bool
-isInitialNode nodeID = null . ingoingEdges nodeID
+-- -- | Is the given node initial?
+-- isInitialNode :: NodeID -> DAG a b -> Bool
+-- isInitialNode nodeID = null . ingoingEdges nodeID
 
 
 -- | The list of the succeding edges of the given edge.
@@ -255,6 +256,11 @@ nextEdges :: EdgeID -> DAG a b -> [EdgeID]
 nextEdges edgeID dag =
   let headNodeID = endsWith edgeID dag
   in  outgoingEdges headNodeID dag
+
+
+-- | Is the given edge initial?
+isFinalEdge :: EdgeID -> DAG a b -> Bool
+isFinalEdge edgeID = null . nextEdges edgeID
 
 
 ------------------------------------------------------------------
