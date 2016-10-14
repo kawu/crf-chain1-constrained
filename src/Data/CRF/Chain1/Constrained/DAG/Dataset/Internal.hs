@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 
@@ -49,6 +50,7 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 
 
 import qualified Data.Foldable as F
+import qualified Data.Traversable as T
 import qualified Data.Array as A
 import qualified Data.Vector as V
 
@@ -70,7 +72,7 @@ import Data.Vector.Binary ()
 data DAG a b = DAG
   { nodeMap :: M.Map NodeID (Node a)
   , edgeMap :: M.Map EdgeID (Edge b)
-  } deriving (Functor, F.Foldable)
+  } deriving (Functor, F.Foldable, T.Traversable)
 
 instance (Binary a, Binary b) => Binary (DAG a b) where
   put = undefined
@@ -114,7 +116,7 @@ data Edge a = Edge
   { tailNode :: NodeID
   , headNode :: NodeID
   , edLabel  :: a }
-  deriving (Show, Eq, Ord, Functor, F.Foldable)
+  deriving (Show, Eq, Ord, Functor, F.Foldable, T.Traversable)
 
 
 ------------------------------------------------------------------
