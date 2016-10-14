@@ -8,8 +8,8 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 (
 -- * Types
   DAG
-, NodeID
-, EdgeID
+, NodeID (..)
+, EdgeID (..)
 
 -- * Primitive Operations
 , begsWith
@@ -29,6 +29,7 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 , minEdge
 , maxEdge
 
+, mapN
 , mapE
 , zipE
 
@@ -38,6 +39,7 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 
 -- * Conversion
 , fromList
+, fromList'
 -- ** Provisional
 , toListProv
 
@@ -76,7 +78,7 @@ instance (Binary a, Binary b) => Binary (DAG a b) where
 
 
 -- | Node ID.
-newtype NodeID = NodeID {_unNodeID :: Int}
+newtype NodeID = NodeID {unNodeID :: Int}
   deriving (Show, Eq, Ord)
 
 
@@ -103,7 +105,7 @@ data Node a = Node
 --
 -- However, this last property is not required for the correcntess of the
 -- inference computations, only for their memory complexity.
-newtype EdgeID = EdgeID {_unEdgeID :: Int}
+newtype EdgeID = EdgeID {unEdgeID :: Int}
   deriving (Show, Eq, Ord, Num, A.Ix)
 
 
@@ -180,6 +182,18 @@ maxEdge = fst . M.findMax . edgeMap
 -- | The list of DAG nodes.
 dagNodes :: DAG a b -> [NodeID]
 dagNodes = M.keys . nodeMap
+
+
+-- | Similar to `fmap` but the mapping function has access to IDs of the
+-- individual edges.
+mapN :: (a -> b) -> DAG a c -> DAG b c
+mapN f dag =
+  dag {nodeMap = nodeMap'}
+  where
+    nodeMap' = M.fromList
+      [ (nodeID, node {ndLabel = newLabel})
+      | (nodeID, node) <- M.toList (nodeMap dag)
+      , let newLabel = f (ndLabel node) ]
 
 
 -- | The list of DAG edges.
@@ -268,41 +282,59 @@ isFinalEdge edgeID = null . nextEdges edgeID
 ------------------------------------------------------------------
 
 
--- | Convert a sequence of items to a trivial DAG.
-_fromList :: [a] -> DAG () a
-_fromList xs = DAG
-  { nodeMap = M.unions [begNodeMap, middleNodeMap, endNodeMap]
+-- | Convert a sequence of (node label, edge label) pairs to a trivial DAG.
+-- The first argument is the first node label.
+_fromList :: a -> [(a, b)] -> DAG a b
+_fromList nodeLabel0 xs = DAG
+  { nodeMap = newNodeMap -- M.unions [begNodeMap, middleNodeMap, endNodeMap]
   , edgeMap = newEdgeMap }
   where
 
-    begNodeMap =
+    newNodeMap = M.fromList $ do
+      let nodeLabels = nodeLabel0 : map fst xs
+          xsLength = length xs
+      (i, y) <- zip [0 .. length xs] nodeLabels
       let node = Node
-            { ingoSet  = S.empty
-            , outgoSet = S.singleton $ EdgeID 0
-            , ndLabel = () }
-      in  M.singleton (NodeID 0) node
-    middleNodeMap = M.fromList $ do
-      i <- [1 .. length xs - 1]
-      let node = Node
-            { ingoSet  = S.singleton $ EdgeID (i-1)
-            , outgoSet = S.singleton $ EdgeID i
-            , ndLabel = () }
+            { ingoSet  =
+                if i > 0
+                then S.singleton $ EdgeID (i-1)
+                else S.empty
+            , outgoSet =
+                if i < xsLength
+                then S.singleton $ EdgeID i
+                else S.empty
+            , ndLabel = y }
       return (NodeID i, node)
-    endNodeMap =
-      let n = length xs
-          node = Node
-            { ingoSet  = S.singleton $ EdgeID (n-1)
-            , outgoSet = S.empty
-            , ndLabel = () }
-      in  M.singleton (NodeID n) node
 
     newEdgeMap = M.fromList $ do
-      (i, x) <- zip [0..] xs
+      (i, x) <- zip [0..] (map snd xs)
       let edge = Edge
             { tailNode = NodeID i
             , headNode = NodeID (i+1)
             , edLabel  = x }
       return (EdgeID i, edge)
+
+--     begNodeMap =
+--       let node = Node
+--             { ingoSet  = S.empty
+--             , outgoSet = S.singleton $ EdgeID 0
+--             , ndLabel = nodeLabel0 }
+--       in  M.singleton (NodeID 0) node
+--     middleNodeMap = M.fromList $ do
+--       let nodeLabels = map fst xs
+--       (i, nodeLabel) <- zip [1 .. length xs - 1] nodeLabels
+--       let node = Node
+--             { ingoSet  = S.singleton $ EdgeID (i-1)
+--             , outgoSet = S.singleton $ EdgeID i
+--             , ndLabel = nodeLabel }
+--       return (NodeID i, node)
+--     endNodeMap =
+--       let n = length xs
+--           node = Node
+--             { ingoSet  = S.singleton $ EdgeID (n-1)
+--             , outgoSet = S.empty
+--             , ndLabel = () }
+--       in  M.singleton (NodeID n) node
 
 
 -- | Convert a sequence of items to a trivial DAG. Afterwards, check if the
@@ -313,7 +345,18 @@ fromList xs =
   then dag
   else error "fromList: resulting DAG not `isOK`"
   where
-    dag = _fromList xs
+    dag = _fromList () $ zip (repeat ()) xs
+
+
+-- | Convert a sequence of items to a trivial DAG. Afterwards, check if the
+-- resulting DAG is well-structured and throw error if not.
+fromList' :: a -> [(a, b)] -> DAG a b
+fromList' x xs =
+  if isOK dag
+  then dag
+  else error "fromList': resulting DAG not `isOK`"
+  where
+    dag = _fromList x xs
 
 
 ------------------------------------------------------------------
