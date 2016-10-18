@@ -28,6 +28,9 @@ module Data.CRF.Chain1.Constrained.DAG
 
 import qualified Data.Vector as V
 
+-- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
+import qualified Data.DAG as DAG
+
 import Data.CRF.Chain1.Constrained.Dataset.External
 import Data.CRF.Chain1.Constrained.Dataset.Codec
 import Data.CRF.Chain1.Constrained.DAG.Feature.Present
@@ -35,7 +38,6 @@ import Data.CRF.Chain1.Constrained.DAG.Feature.Present
 import Data.CRF.Chain1.Constrained.DAG.Train
 import qualified Data.CRF.Chain1.Constrained.DAG.Inference as I
 import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as Int
-import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 
 -- | Determine the most probable label sequence within the context of the
 -- given sentence using the model provided by the 'CRF'.

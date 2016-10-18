@@ -7,9 +7,11 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.External
 -- import qualified Data.Set as S
 -- import qualified Data.Map as M
 
+import qualified Data.DAG as DAG
+import           Data.DAG (DAG)
+-- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
+-- import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
 import qualified Data.CRF.Chain1.Constrained.Dataset.External as C
-import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
-import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
 
 
 -- | A sentence (DAG) of words.

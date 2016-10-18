@@ -5,10 +5,13 @@ module Data.CRF.Chain1.Constrained.DAG.Feature
 
 import qualified Data.Number.LogFloat as L
 
+-- import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (EdgeID, DAG)
+-- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
+import           Data.DAG (EdgeID, DAG)
+import qualified Data.DAG as DAG
+
 import           Data.CRF.Chain1.Constrained.Core (X, Y, Feature)
 import qualified Data.CRF.Chain1.Constrained.Core as C
-import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (EdgeID, DAG)
-import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 
 
 -- | Transition features with assigned probabilities for given position.

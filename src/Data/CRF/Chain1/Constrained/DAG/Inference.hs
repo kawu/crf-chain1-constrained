@@ -30,12 +30,10 @@ import Control.Parallel (par, pseq)
 import GHC.Conc (numCapabilities)
 import qualified Data.Number.LogFloat as L
 
--- import qualified Data.CRF.Chain1.Constrained.DP as DP
--- import           Data.CRF.Chain1.Constrained.Util (partition)
--- import           Data.CRF.Chain1.Constrained.Dataset.Internal
--- import           Data.CRF.Chain1.Constrained.Feature (Feature(..))
--- import           Data.CRF.Chain1.Constrained.Model
--- import           Data.CRF.Chain1.Constrained.Intersect
+-- import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (EdgeID, DAG)
+-- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
+import           Data.DAG (EdgeID, DAG)
+import qualified Data.DAG as DAG
 
 import qualified Data.CRF.Chain1.Constrained.DP as DP
 import           Data.CRF.Chain1.Constrained.Util (partition)
@@ -43,8 +41,6 @@ import qualified Data.CRF.Chain1.Constrained.Model as Md
 
 import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, AVec)
 import qualified Data.CRF.Chain1.Constrained.Core as C
-import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (EdgeID, DAG)
-import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 import qualified Data.CRF.Chain1.Constrained.Intersect as I
 
 

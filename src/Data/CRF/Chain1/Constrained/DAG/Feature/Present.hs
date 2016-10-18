@@ -11,10 +11,13 @@ module Data.CRF.Chain1.Constrained.DAG.Feature.Present
 ) where
 
 
+import           Data.DAG (DAG)
+import qualified Data.DAG as DAG
+-- import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
+-- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
+
 import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, Feature)
 import qualified Data.CRF.Chain1.Constrained.Core as C
-import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
-import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 
 
 -- | 'OFeature's which occur in the dataset.
