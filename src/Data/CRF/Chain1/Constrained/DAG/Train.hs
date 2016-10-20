@@ -27,6 +27,7 @@ import Data.Binary (Binary, put, get)
 import qualified Data.Set as S
 import qualified Data.Map as M
 import qualified Data.Vector as V
+import qualified Data.Foldable as F
 import qualified Numeric.SGD as SGD
 import qualified Numeric.SGD.LogSigned as L
 
@@ -38,9 +39,10 @@ import qualified Data.DAG as DAG
 import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, AVec, Feature)
 -- import qualified Data.CRF.Chain1.Constrained.Core as C
 import qualified Data.CRF.Chain1.Constrained.Model as Md
-import qualified Data.CRF.Chain1.Constrained.Dataset.Codec as Cd
-import qualified Data.CRF.Chain1.Constrained.Dataset.External as E
 import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as Int
+
+import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Codec as Cd
+import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.External as E
 
 -- import           Data.CRF.Chain1.Constrained.Model
 --     (Model (..), mkModel, FeatIx (..), featToJustInt)
@@ -91,7 +93,7 @@ train sgdArgs onDisk mkR0 featSel trainIO evalIO = do
 
     -- Create codec and encode the training dataset
     codec <- Cd.mkCodec <$> trainIO
-    trainData_ <- dagData . Cd.encodeDataL codec <$> trainIO
+    trainData_ <- Cd.encodeDataL codec <$> trainIO
 
     -- TODO: finished here; need to convert internal sequential data
     -- to internal DAG-based data.
@@ -99,7 +101,7 @@ train sgdArgs onDisk mkR0 featSel trainIO evalIO = do
     SGD.withData onDisk trainData_ $ \trainData -> do
 
     -- Encode the evaluation dataset
-    evalData_ <- dagData . Cd.encodeDataL codec <$> evalIO
+    evalData_ <- Cd.encodeDataL codec <$> evalIO
     SGD.withData onDisk evalData_ $ \evalData -> do
 
     -- A default set of labels
@@ -148,19 +150,19 @@ notify SGD.SgdArgs{..} model trainData evalData para k
     trainSize = SGD.size trainData
 
 
-------------------------------------------------------
--- Dataset conversion
-------------------------------------------------------
-
-
--- | Convert the sequential representation to DAG-based one.
-dagSent :: (Int.Xs, Int.Ys) -> DAG () (X, Y)
-dagSent (xs, ys) = DAG.fromList (zip (V.toList xs) (V.toList ys))
-
-
--- | Convert the sequential representation to DAG-based one.
-dagData :: [(Int.Xs, Int.Ys)] -> [DAG () (X, Y)]
-dagData = map dagSent
+-- ------------------------------------------------------
+-- -- Dataset conversion (provisional?)
+-- ------------------------------------------------------
+-- 
+-- 
+-- -- | Convert the sequential representation to DAG-based one.
+-- dagSent :: (Int.Xs, Int.Ys) -> DAG () (X, Y)
+-- dagSent (xs, ys) = DAG.fromList (zip (V.toList xs) (V.toList ys))
+-- 
+-- 
+-- -- | Convert the sequential representation to DAG-based one.
+-- dagData :: [(Int.Xs, Int.Ys)] -> [DAG () (X, Y)]
+-- dagData = map dagSent
 
 
 ------------------------------------------------------
@@ -192,4 +194,4 @@ anyInterps = S.union
 
 -- | Collect labels given function which selects labels from a word.
 collect :: Ord b => (E.WordL a b -> [b]) -> [E.SentL a b] -> S.Set b
-collect onWord = S.fromList . concatMap (concatMap onWord)
+collect onWord = S.fromList . concatMap (F.concatMap onWord)

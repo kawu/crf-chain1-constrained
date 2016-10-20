@@ -2,7 +2,8 @@
 
 
 module Data.CRF.Chain1.Constrained.Dataset.Codec
-( Codec
+( empty
+, Codec
 , CodecM
 , obMax
 , lbMax

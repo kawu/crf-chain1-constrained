@@ -42,7 +42,7 @@ mkProb :: Ord a => [(a, Double)] -> Prob a
 mkProb =
     Prob . normalize . M.fromListWith (+) . filter ((>0).snd)
   where
-    normalize dist 
+    normalize dist
         | M.null dist  =
             error "mkProb: no elements with positive probability"
         | otherwise     =

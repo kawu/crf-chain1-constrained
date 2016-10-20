@@ -1,5 +1,8 @@
 module Data.CRF.Chain1.Constrained.DAG.Dataset.Codec
-( Xs
+(
+  module Data.CRF.Chain1.Constrained.Dataset.Codec
+
+, Xs
 , XYs
 
 , encodeSent'Cu
@@ -12,6 +15,8 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Codec
 
 , encodeData
 , encodeDataL
+
+, mkCodec
 ) where
 
 
@@ -23,7 +28,10 @@ import           Data.DAG as DAG
 import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as I
 import           Data.CRF.Chain1.Constrained.DAG.Dataset.External
 import qualified Data.CRF.Chain1.Constrained.Dataset.Codec as C
-import           Control.Monad.Codec (evalCodec)
+import           Data.CRF.Chain1.Constrained.Dataset.Codec hiding
+  (encodeSent'Cu, encodeSent'Cn, encodeSent, encodeSentL'Cu, encodeSentL'Cn,
+  encodeSentL, encodeData, encodeDataL, mkCodec)
+import           Control.Monad.Codec (evalCodec, execCodec)
 
 
 -- | Utility types.
@@ -88,3 +96,13 @@ encodeDataL = map . encodeSentL
 -- | Encode the dataset with the codec.
 encodeData :: (Ord a, Ord b) => C.Codec a b -> [Sent a b] -> [Xs]
 encodeData = map . encodeSent
+
+
+-------------------------------------
+-- Creation
+-------------------------------------
+
+
+-- | Create codec on the basis of the labeled dataset.
+mkCodec :: (Ord a, Ord b) => [SentL a b] -> Codec a b
+mkCodec = execCodec empty . mapM_ encodeSentL'Cu
