@@ -23,7 +23,7 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Codec
 -- import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 
-import           Data.DAG as DAG
+import           Data.DAG (DAG)
 -- import Data.CRF.Chain1.Constrained.DAG.Dataset.Internal
 import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as I
 import           Data.CRF.Chain1.Constrained.DAG.Dataset.External

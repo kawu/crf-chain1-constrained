@@ -281,7 +281,7 @@ edgeProb2 crf dag alpha beta psi (kEdgeID, xLbIx) (lEdgeID, yLbIx) ix
 -- {-# INLINE prob2 #-}
 
 
--- | Tag probabilities with respect to marginal distributions.
+-- | Tag potential labels with marginal distributions.
 -- marginals :: Md.Model -> DAG a X -> [[(Lb, L.LogFloat)]]
 marginals :: Md.Model -> DAG a X -> DAG a [(Lb, L.LogFloat)]
 marginals crf dag =
