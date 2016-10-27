@@ -52,6 +52,14 @@ newtype Prob a = Prob { unProb :: M.Map a Double }
 
 
 -- | Construct the probability distribution.
+--
+-- Normalization is not performed because, when working with DAGs, the
+-- probability of a specific DAG edge can be lower than 1 (in particular, it can
+-- be 0).
+--
+-- Elements with probability 0 cab be filtered out since information that a
+-- given label is a potential interpretation of the given word/edge is preserved
+-- at the level of the `Word`
 mkProb :: Ord a => [(a, Double)] -> Prob a
 mkProb = Prob . M.fromListWith (+) . filter ((>0).snd)
 
