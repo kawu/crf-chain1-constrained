@@ -65,7 +65,13 @@ tag CRF{..} sent
         labeledSent = DAG.zipE sent labeled
 
 
--- | Tag with marginal probabilities.
+-- | Tag with marginal probabilities. For known words (i.e., with `lbs`
+-- non-empty), their known potential interpretations are assigned some
+-- probabilities (other interpretations are not considered.  For unknown
+-- words (i.e., with empty `lbs`), all interpretations are considered
+-- (up to the way the set of all interpretations is constructed).
+-- In particular, if no interpretation with probability > 0 is found
+-- for an unknown word, its set of chosen labels will remain empty.
 marginals :: (Ord a, Ord b) => CRF a b -> Sent a b -> SentL a b
 marginals CRF{..} sent
   = fmap decodeChosen
@@ -74,9 +80,12 @@ marginals CRF{..} sent
   . C.encodeSent codec
   $ sent
   where
-    decodeChosen (word, chosen) = mkWordL word $ mkProb
-      [ (decode word x, L.fromLogFloat p)
-      |  (x, p) <- chosen ]
+    decodeChosen (word, chosen) =
+      mkWordL word prob
+      where
+        prob = mkProb
+          [ (decode word x, L.fromLogFloat p)
+          |  (x, p) <- chosen ]
     decode word = unJust codec word . decodeLabel codec
 
 

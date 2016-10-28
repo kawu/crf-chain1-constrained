@@ -73,10 +73,19 @@ data WordL a b = WordL
     , choice    :: Prob b }
 
 
--- | TODO: Ensure, that every label from the distribution domain is a member of
--- the set of potential labels corresponding to the word.
-mkWordL :: Word a b -> Prob b -> WordL a b
-mkWordL = WordL
+-- | Ensure, that every label from the distribution domain is a member of the
+-- set of potential labels corresponding to the word.
+mkWordL :: (Ord b) => Word a b -> Prob b -> WordL a b
+mkWordL wd cs
+--   | S.null chosen && S.null (lbs wd) =
+--     error "mkWordL: no labels assigned to the word"
+--     <- the above condition can actualy happen it the model does not
+--        find any probable label for a given word.
+  | S.null (lbs wd) = WordL wd cs
+  | chosen `S.isSubsetOf` lbs wd = WordL wd cs
+  | otherwise = error "mkWordL: chosen labels outside of `lbs`"
+  where
+    chosen = M.keysSet (unProb cs)
 
 
 -- | A sentence of labeled words.

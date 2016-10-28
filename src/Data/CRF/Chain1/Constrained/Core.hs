@@ -83,7 +83,7 @@ fromSet = AVec . U.fromList . S.toAscList
 data X
     -- | The word with default set of potential interpretations.
     = X { _unX :: AVec Ob }
-    -- | The word with custom set of potential labels.
+    -- | The word with restricted set of potential labels.
     | R { _unX :: AVec Ob
         , _unR :: AVec Lb }
     deriving (Show, Read, Eq, Ord)
