@@ -20,6 +20,7 @@ import Control.Applicative ((<$>))
 import Data.Maybe (catMaybes)
 import Data.List (maximumBy, sortBy)
 import Data.Function (on)
+import qualified Data.Set as S
 import qualified Data.Array as A
 -- import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
@@ -133,9 +134,15 @@ forward crf dag = alpha where
   boundsOn i
     | i == snd bounds = (0, 0)
     | otherwise = (0, lbNum crf dag i - 1)
+  -- set of initial edges
+  initialSet = S.fromList
+    [ i
+    | i <- DAG.dagEdges dag
+    , DAG.isInitialEdge i dag ]
   withMem psi alpha i
     | i == snd bounds = const u'
-    | i == fst bounds = \j ->
+    -- | i == fst bounds = \j ->
+    | i `S.member` initialSet = \j ->
         let x = lbOn crf (DAG.edgeLabel i dag) j
         in  psi j * Md.sgValue crf x
     | otherwise = \j ->
@@ -173,8 +180,14 @@ backward crf dag = beta where
     | i == fst bounds = (0, 0)
     | otherwise = (0, lbNum crf dag i - 1)
   psi = computePsi' crf dag
+  -- set of final edges
+  finalSet = S.fromList
+    [ i
+    | i <- DAG.dagEdges dag
+    , DAG.isFinalEdge i dag ]
   withMem beta i
-    | i == snd bounds = const 1
+    -- | i == snd bounds = const 1
+    | i `S.member` finalSet = const 1
     | i == fst bounds = const $ sum
       [ beta iPlus1 k * psi iPlus1 k
         * Md.sgValue crf (lbOn crf (DAG.edgeLabel iPlus1 dag) k)
@@ -242,8 +255,17 @@ edgeProb1
   -> LbIx
   -- ^ Index of the label of the edge represented by the `EdgeID`
   -> L.LogFloat
-edgeProb1 dag alpha beta k x =
-    alpha k x * beta k x / zxBeta dag beta
+edgeProb1 dag alpha beta k x
+  -- alpha k x * beta k x / zxBeta dag beta
+  | any isInf [up1, up2, down] =
+      error $ "edgeProb1: infinite -- " ++ show [up1, up2, down, down'] -- ++ "; " ++ show (k, x)
+  | otherwise = up1 * up2 / down
+  where
+    isInf x = isInfinite (L.logFromLogFloat x :: Double)
+    up1 = alpha k x
+    up2 = beta k x
+    down = zxBeta dag beta
+    down' = zxAlpha dag alpha
 {-# INLINE edgeProb1 #-}
 
 
@@ -268,8 +290,19 @@ edgeProb2
   -- to the transition between the first and the succeeding edge
   -> L.LogFloat
 edgeProb2 crf dag alpha beta psi (kEdgeID, xLbIx) (lEdgeID, yLbIx) ix
-    = alpha kEdgeID xLbIx * beta lEdgeID yLbIx
-    * psi lEdgeID yLbIx * Md.valueL crf ix / zxBeta dag beta
+  -- = alpha kEdgeID xLbIx * beta lEdgeID yLbIx
+  -- -- * psi lEdgeID yLbIx * Md.valueL crf ix / zxBeta dag beta
+  | any isInf [up1, up2, up3, up4, down] =
+      error $ "edgeProb2: infinite -- " ++ show [up1, up2, up3, up4, down, down']
+  | otherwise = up1 * up2 * up3 * up4 / down
+  where
+    isInf x = isInfinite (L.logFromLogFloat x :: Double)
+    up1 = alpha kEdgeID xLbIx
+    up2 = beta lEdgeID yLbIx
+    up3 = psi lEdgeID yLbIx
+    up4 = Md.valueL crf ix
+    down = zxBeta dag beta
+    down' = zxAlpha dag alpha
 {-# INLINE edgeProb2 #-}
 
 
@@ -284,8 +317,9 @@ edgeProb2 crf dag alpha beta psi (kEdgeID, xLbIx) (lEdgeID, yLbIx) ix
 -- | Tag potential labels with marginal distributions.
 -- marginals :: Md.Model -> DAG a X -> [[(Lb, L.LogFloat)]]
 marginals :: Md.Model -> DAG a X -> DAG a [(Lb, L.LogFloat)]
-marginals crf dag =
-  DAG.mapE label dag
+marginals crf dag
+  | not (zx1 `almostEq` zx2) = error $ "marginals: " ++ show (zx1, zx2)
+  | otherwise = DAG.mapE label dag
   where
     label edgeID _ =
       [ (lab, prob1 edgeID labID)
@@ -293,6 +327,8 @@ marginals crf dag =
     prob1 = edgeProb1 dag alpha beta
     alpha = forward crf dag
     beta = backward crf dag
+    zx1 = zxAlpha dag alpha
+    zx2 = zxBeta dag beta
 
 
 -- | Get (at most) k best tags for each word and return them in
@@ -400,3 +436,16 @@ accuracy crf dataset =
         (good, bad) = F.foldl' add (0, 0) xs
         add (g, b) (g', b') = (g + g', b + b')
     in  fromIntegral good / fromIntegral (good + bad)
+
+
+---------------------------------------------
+-- Utils
+---------------------------------------------
+
+
+almostEq :: (Fractional t, Ord t) => t -> t -> Bool
+almostEq x y =
+  1.0 - eps < z && z < 1.0 + eps
+  where
+    z = x / y
+    eps = 0.000001
