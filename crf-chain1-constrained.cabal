@@ -70,6 +70,7 @@ library
       , Data.CRF.Chain1.Constrained.DAG.Dataset.Codec
       , Data.CRF.Chain1.Constrained.DAG.Feature
       , Data.CRF.Chain1.Constrained.DAG.Feature.Present
+      , Data.CRF.Chain1.Constrained.DAG.Feature.Hidden
       , Data.CRF.Chain1.Constrained.DAG.Inference
       , Data.CRF.Chain1.Constrained.DAG.Train
 

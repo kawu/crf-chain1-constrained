@@ -18,7 +18,7 @@ module Data.CRF.Chain1.Constrained.DAG.Inference
 
 import Control.Applicative ((<$>))
 import Data.Maybe (catMaybes)
-import Data.List (maximumBy, sortBy)
+import Data.List (maximumBy, sort, sortBy)
 import Data.Function (on)
 import qualified Data.Set as S
 import qualified Data.Array as A
@@ -58,6 +58,18 @@ type LbIx       = Int
 -- by its index) which can be assigned to a given edge (represented by its
 -- `EdgeID`).
 type ProbArray  = EdgeID -> LbIx -> L.LogFloat
+
+
+---------------------------------------------
+-- Summing
+---------------------------------------------
+
+
+-- | Numerically safer summing.
+safeSum :: (Ord a, Num a) => [a] -> a
+-- safeSum = sum . sort
+safeSum = sum
+{-#INLINE safeSum #-}
 
 
 ---------------------------------------------
@@ -149,22 +161,22 @@ forward crf dag = alpha where
         let x = lbOn crf (DAG.edgeLabel i dag) j
         in  psi j * ((u - v x) + w x)
     where
-      u = sum
+      u = safeSum
         [ alpha iMinus1 k
         | iMinus1 <- DAG.prevEdges i dag
         , (k, _) <- lbIxs crf dag iMinus1 ]
-      v x = sum
+      v x = safeSum
         [ alpha iMinus1 k
         | iMinus1 <- DAG.prevEdges i dag
         , (k, _) <- I.intersect (Md.prevIxs crf x) (lbVec crf dag iMinus1) ]
-      w x = sum
+      w x = safeSum
         [ alpha iMinus1 k * Md.valueL crf ix
         | iMinus1 <- DAG.prevEdges i dag
         , (k, ix) <- I.intersect (Md.prevIxs crf x) (lbVec crf dag iMinus1) ]
       -- Note that if `i == snd bounds` then `i` does not refer to any existing
       -- edge, hence the need to introduce `u'` which does almost the same thing
       -- as `u`.
-      u' = sum
+      u' = safeSum
         [ alpha iMinus1 k
         | iMinus1 <- DAG.dagEdges dag
         , DAG.isFinalEdge iMinus1 dag
@@ -188,7 +200,7 @@ backward crf dag = beta where
   withMem beta i
     -- | i == snd bounds = const 1
     | i `S.member` finalSet = const 1
-    | i == fst bounds = const $ sum
+    | i == fst bounds = const $ safeSum
       [ beta iPlus1 k * psi iPlus1 k
         * Md.sgValue crf (lbOn crf (DAG.edgeLabel iPlus1 dag) k)
       | iPlus1 <- DAG.dagEdges dag
@@ -201,19 +213,19 @@ backward crf dag = beta where
       -- Note that here `i` is an identifier of the current DAG edge.
       -- Instead of simply adding `1` to `i` (i.e., `i + 1`),
       -- we need to find the identifiers of the succeeding edges.
-      u = sum
+      u = safeSum
         [ beta iPlus1 k * psi iPlus1 k
         | iPlus1 <- DAG.nextEdges i dag
         , (k, _ ) <- lbIxs crf dag iPlus1 ]
       -- `y` is the label on position `i`, we are looking for
       -- matching labels on the position `i+1`.
-      v y = sum
+      v y = safeSum
         [ beta iPlus1 k * psi iPlus1 k
         | iPlus1 <- DAG.nextEdges i dag
         , (k, _ ) <- I.intersect (Md.nextIxs crf y) (lbVec crf dag iPlus1) ]
       -- `y` is the label on position `i`, we are looking for
       -- matching labels on the position `i+1`.
-      w y = sum
+      w y = safeSum
         [ beta iPlus1 k * psi iPlus1 k * Md.valueL crf ix
         | iPlus1 <- DAG.nextEdges i dag
         , (k, ix) <- I.intersect (Md.nextIxs crf y) (lbVec crf dag iPlus1) ]

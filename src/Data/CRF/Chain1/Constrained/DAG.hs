@@ -24,7 +24,7 @@ module Data.CRF.Chain1.Constrained.DAG
 -- * Modules
 , module Data.CRF.Chain1.Constrained.DAG.Train
 , module Data.CRF.Chain1.Constrained.DAG.Feature.Present
--- , module Data.CRF.Chain1.Constrained.Feature.Hidden
+, module Data.CRF.Chain1.Constrained.DAG.Feature.Hidden
 ) where
 
 import qualified Data.Vector as V
@@ -40,7 +40,7 @@ import           Data.CRF.Chain1.Constrained.DAG.Dataset.External
 import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Codec as C
 import           Data.CRF.Chain1.Constrained.Dataset.Codec (decodeLabel, unJust)
 import           Data.CRF.Chain1.Constrained.DAG.Feature.Present
--- import           Data.CRF.Chain1.Constrained.Feature.Hidden
+import           Data.CRF.Chain1.Constrained.DAG.Feature.Hidden
 import           Data.CRF.Chain1.Constrained.DAG.Train
 import qualified Data.CRF.Chain1.Constrained.DAG.Inference as I
 import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as Int

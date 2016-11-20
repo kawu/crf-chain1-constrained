@@ -60,7 +60,7 @@ lbIxs :: Model -> Xs -> Int -> [(Int, Lb)]
 lbIxs crf xs = zip [0..] . U.toList . unAVec . lbVec crf xs
 {-# INLINE lbIxs #-}
 
--- | Compute the table of potential products associated with 
+-- | Compute the table of potential products associated with
 -- observation features for the given sentence position.
 computePsi :: Model -> Xs -> Int -> LbIx -> L.LogFloat
 computePsi crf xs i = (A.!) $ A.accumArray (*) 1 bounds
@@ -202,7 +202,7 @@ goodAndBad' crf dataset =
 accuracy :: Model -> [(Xs, Ys)] -> Double
 accuracy crf dataset =
     let k = numCapabilities
-    	parts = partition k dataset
+        parts = partition k dataset
         xs = parMap rseq (goodAndBad' crf) parts
         (good, bad) = foldl add (0, 0) xs
         add (g, b) (g', b') = (g + g', b + b')
@@ -218,7 +218,7 @@ expectedFeaturesOn crf alpha beta xs i =
     pr1 = prob1     alpha beta i
     pr2 = prob2 crf alpha beta i psi
 
-    oFeats = [ (ix, pr1 k) 
+    oFeats = [ (ix, pr1 k)
              | o <- unX (xs V.! i)
              , (k, ix) <- intersect (obIxs crf o) (lbVec crf xs i) ]
 
@@ -233,7 +233,7 @@ expectedFeaturesOn crf alpha beta xs i =
 
 -- | A list of features (represented by feature indices) defined within
 -- the context of the sentence accompanied by expected probabilities
--- determined on the basis of the model. 
+-- determined on the basis of the model.
 --
 -- One feature can occur multiple times in the output list.
 expectedFeaturesIn :: Model -> Xs -> [(FeatIx, L.LogFloat)]
