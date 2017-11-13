@@ -49,7 +49,7 @@ library
       , data-lens           >= 2.10     && < 2.11
       , sgd                 >= 0.3.3    && < 0.4
       , vector-th-unbox     >= 0.2.1    && < 0.3
-      , pedestrian-dag      >= 0.1      && < 0.2
+      , pedestrian-dag      >= 0.2      && < 0.3
 
     exposed-modules:
         Data.CRF.Chain1.Constrained
