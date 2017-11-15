@@ -31,6 +31,7 @@ module Data.CRF.Chain1.Constrained.Dataset.Codec
 , unJusts
 ) where
 
+import Prelude hiding (Word)
 import Control.Applicative ((<$>), (<*>), pure)
 import Data.Maybe (catMaybes, fromJust)
 import Data.Lens.Common (fstLens, sndLens)

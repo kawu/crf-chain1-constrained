@@ -20,6 +20,7 @@ module Data.CRF.Chain1.Constrained.DAG.Dataset.Codec
 ) where
 
 
+import           Prelude hiding (Word)
 -- import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 

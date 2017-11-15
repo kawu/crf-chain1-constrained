@@ -27,6 +27,7 @@ module Data.CRF.Chain1.Constrained.DAG
 , module Data.CRF.Chain1.Constrained.DAG.Feature.Hidden
 ) where
 
+import           Prelude hiding (Word)
 import qualified Data.Vector as V
 import qualified Data.Number.LogFloat as L
 

@@ -25,6 +25,7 @@ module Data.CRF.Chain1.Constrained
 , module Data.CRF.Chain1.Constrained.Feature.Hidden
 ) where
 
+import Prelude hiding (Word)
 import Data.CRF.Chain1.Constrained.Dataset.External
 import Data.CRF.Chain1.Constrained.Dataset.Codec
 import Data.CRF.Chain1.Constrained.Feature.Present

@@ -38,15 +38,15 @@ library
     build-depends:
         base                >= 4        && < 5
       , containers          >= 0.4      && < 0.6
-      , vector              >= 0.10     && < 0.11
+      , vector              >= 0.10     && < 0.12
       , array               >= 0.4      && < 0.6
-      , random              >= 1.0      && < 1.1
+      , random              >= 1.0      && < 1.2
       , parallel            >= 3.2      && < 3.3
       , logfloat            >= 0.12.1   && < 0.14
       , monad-codec         >= 0.2      && < 0.3
-      , binary              >= 0.5      && < 0.8
+      , binary              >= 0.5      && < 0.9
       , vector-binary       >= 0.1      && < 0.2
-      , data-lens           >= 2.10     && < 2.11
+      , data-lens           >= 2.10     && < 2.12
       , sgd                 >= 0.4.0    && < 0.5
       , vector-th-unbox     >= 0.2.1    && < 0.3
       , pedestrian-dag      >= 0.2      && < 0.3
