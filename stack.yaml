@@ -11,7 +11,7 @@ packages:
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
-- pedestrian-dag-0.1.0
+- pedestrian-dag-0.2.0
 - sgd-0.4.0
 - data-lens-2.11.1
 - monad-codec-0.2.0
