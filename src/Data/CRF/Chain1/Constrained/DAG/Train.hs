@@ -28,7 +28,7 @@ import qualified Data.Set as S
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.Foldable as F
-import qualified Numeric.SGD as SGD
+import qualified Numeric.SGD.Momentum as SGD
 import qualified Numeric.SGD.LogSigned as L
 
 -- import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
