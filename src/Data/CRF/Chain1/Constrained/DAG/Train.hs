@@ -27,6 +27,7 @@ import Data.Binary (Binary, put, get)
 import qualified Data.Set as S
 import qualified Data.Map as M
 import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as U
 import qualified Data.Foldable as F
 import qualified Numeric.SGD.Momentum as SGD
 import qualified Numeric.SGD.LogSigned as L
@@ -134,13 +135,25 @@ notify
     -> SGD.Dataset (DAG a (X, Y))     -- ^ Evaluation dataset
     -> SGD.Para -> Int -> IO ()
 notify SGD.SgdArgs{..} model trainData evalData para k
-    | doneTotal k == doneTotal (k - 1) = putStr "."
-    | SGD.size evalData > 0 = do
-        x <- I.accuracy (model { Md.values = para }) <$> SGD.loadData evalData
-        putStrLn ("\n" ++ "[" ++ show (doneTotal k) ++ "] f = " ++ show x)
-    | otherwise =
-        putStrLn ("\n" ++ "[" ++ show (doneTotal k) ++ "] f = #")
+  | doneTotal k == doneTotal (k - 1) = putStr "."
+  | otherwise = do
+      putStrLn "" >> report para
+--       report $ U.map (*50.0) para
+--       report $ U.map (*10.0) para
+--       report $ U.map (*2.0) para
+--       report $ U.map (*0.9) para
+--       report $ U.map (*0.5) para
+--       report $ U.map (*0.1) para
   where
+    report para = do
+      acc <-
+        if SGD.size evalData > 0
+        then show . I.accuracy (model { Md.values = para }) <$> SGD.loadData evalData
+        else return "#"
+      putStrLn $
+        "[" ++ show (doneTotal k) ++ "] acc = " ++ acc ++
+        ", min(params) = " ++ show (U.minimum para) ++
+        ", max(params) = " ++ show (U.maximum para)
     doneTotal :: Int -> Int
     doneTotal = floor . done
     done :: Int -> Double
@@ -153,13 +166,13 @@ notify SGD.SgdArgs{..} model trainData evalData para k
 -- ------------------------------------------------------
 -- -- Dataset conversion (provisional?)
 -- ------------------------------------------------------
--- 
--- 
+--
+--
 -- -- | Convert the sequential representation to DAG-based one.
 -- dagSent :: (Int.Xs, Int.Ys) -> DAG () (X, Y)
 -- dagSent (xs, ys) = DAG.fromList (zip (V.toList xs) (V.toList ys))
--- 
--- 
+--
+--
 -- -- | Convert the sequential representation to DAG-based one.
 -- dagData :: [(Int.Xs, Int.Ys)] -> [DAG () (X, Y)]
 -- dagData = map dagSent
