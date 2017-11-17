@@ -30,6 +30,7 @@ import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Foldable as F
 import qualified Numeric.SGD.Momentum as SGD
+import qualified Data.Number.LogFloat as LogFloat
 import qualified Numeric.SGD.LogSigned as L
 
 -- import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
@@ -52,6 +53,7 @@ import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.External as E
 
 import           Data.CRF.Chain1.Constrained.DAG.Feature (featuresIn)
 import qualified Data.CRF.Chain1.Constrained.DAG.Inference as I -- (accuracy, expectedFeaturesIn)
+import qualified Data.CRF.Chain1.Constrained.DAG.Probs as P -- (accuracy, expectedFeaturesIn)
 
 
 -- | A conditional random field model with additional codec used for
@@ -146,14 +148,17 @@ notify SGD.SgdArgs{..} model trainData evalData para k
 --       report $ U.map (*0.1) para
   where
     report para = do
+      let crf = model {Md.values = para}
+      llh <- show . LogFloat.logFromLogFloat . P.likelihood crf <$> SGD.loadData trainData
       acc <-
         if SGD.size evalData > 0
-        then show . I.accuracy (model { Md.values = para }) <$> SGD.loadData evalData
+        then show . I.accuracy crf <$> SGD.loadData evalData
         else return "#"
-      putStrLn $
-        "[" ++ show (doneTotal k) ++ "] acc = " ++ acc ++
-        ", min(params) = " ++ show (U.minimum para) ++
-        ", max(params) = " ++ show (U.maximum para)
+      putStrLn $ "[" ++ show (doneTotal k) ++ "] stats:"
+      putStrLn $ "min(params) = " ++ show (U.minimum para)
+      putStrLn $ "max(params) = " ++ show (U.maximum para)
+      putStrLn $ "log(likelihood(train)) = " ++ llh
+      putStrLn $ "acc(eval) = " ++ acc
     doneTotal :: Int -> Int
     doneTotal = floor . done
     done :: Int -> Double

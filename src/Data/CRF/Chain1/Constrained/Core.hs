@@ -20,7 +20,7 @@ module Data.CRF.Chain1.Constrained.Core
 , mkY
 , unY
 
-, AVec (unAVec)
+, AVec (..)
 , fromList
 , fromSet
 

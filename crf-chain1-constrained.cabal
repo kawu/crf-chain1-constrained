@@ -72,6 +72,7 @@ library
       , Data.CRF.Chain1.Constrained.DAG.Feature.Present
       , Data.CRF.Chain1.Constrained.DAG.Feature.Hidden
       , Data.CRF.Chain1.Constrained.DAG.Inference
+      , Data.CRF.Chain1.Constrained.DAG.Probs
       , Data.CRF.Chain1.Constrained.DAG.Train
 
     other-modules:

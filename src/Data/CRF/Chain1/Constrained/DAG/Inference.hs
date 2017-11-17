@@ -13,6 +13,12 @@ module Data.CRF.Chain1.Constrained.DAG.Inference
 , expectedFeaturesIn
 , zx
 , zx'
+
+-- , probability
+-- , likelihood
+
+-- * Internals
+, computePsi
 ) where
 
 
@@ -44,6 +50,8 @@ import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, AVec)
 import qualified Data.CRF.Chain1.Constrained.Core as C
 import qualified Data.CRF.Chain1.Constrained.Intersect as I
 
+import           Data.CRF.Chain1.Constrained.DAG.Feature (featuresIn)
+
 
 ---------------------------------------------
 -- Util Types
@@ -65,10 +73,17 @@ type ProbArray  = EdgeID -> LbIx -> L.LogFloat
 ---------------------------------------------
 
 
+-- -- | Numerically safer summing.
+-- safeSum :: (Ord a, Num a) => [a] -> a
+-- -- safeSum = sum . sort
+-- safeSum = sum
+-- {-#INLINE safeSum #-}
+
+
 -- | Numerically safer summing.
-safeSum :: (Ord a, Num a) => [a] -> a
--- safeSum = sum . sort
-safeSum = sum
+safeSum :: [L.LogFloat] -> L.LogFloat
+safeSum [] = 0
+safeSum xs = L.sum xs
 {-#INLINE safeSum #-}
 
 
@@ -449,6 +464,45 @@ accuracy crf dataset =
         (good, bad) = F.foldl' add (0, 0) xs
         add (g, b) (g', b') = (g + g', b + b')
     in  fromIntegral good / fromIntegral (good + bad)
+
+
+---------------------------------------------
+-- Probability and likelihood
+---------------------------------------------
+
+
+-- -- | Log-likelihood of the given dataset.
+-- likelihood :: Md.Model -> [DAG a (X, Y)] -> L.LogFloat
+-- -- likelihood crf = L.product . map (probability crf)
+-- -- likelihood crf = probability crf . head
+-- likelihood crf = maximum . map (probability crf)
+--
+--
+-- -- | The conditional probability of the dag in log-domain.
+-- probability :: Md.Model -> DAG a (X, Y) -> L.LogFloat
+-- probability crf dag = normFactor
+-- --   | potential > normFactor =
+-- --       error $ "[probability] potential greater than normFactor: "
+-- --       ++ show (potential, normFactor)
+-- --   | otherwise = potential / normFactor
+--   where
+--     potential = L.product
+--       [ Md.valueL crf (Md.featToJustIx crf feat)
+--       | (feat, _val) <- featuresIn dag ]
+--     normFactor = zx crf (fmap fst dag)
+
+
+-- -- | Features w.r.t. a given edge.
+-- features
+--   :: Md.Model
+--   -> EdgeID  -- ^ ID of an edge of the DAG
+--   -> DAG a (X, Y)
+--   -> [Md.FeatIx]
+-- features crf edgeID dag =
+--   where
+--     oFeats = [ (ix, prob1 k)
+--              | ob <- C.unX (DAG.edgeLabel iEdgeID dag)
+--              , (k, ix) <- I.intersect (Md.obIxs crf ob) (lbVec crf dag iEdgeID) ]
 
 
 ---------------------------------------------

@@ -1,5 +1,6 @@
 module Data.CRF.Chain1.Constrained.DAG.Feature
 ( featuresIn
+, features
 ) where
 
 
@@ -50,6 +51,12 @@ features edgeID dag = trFeats edgeID dag ++ obFeats edgeID dag
 
 -- | Return the list of features, together with the corresponding probabilities
 -- (specified in the dataset), in the labeled DAG.
+--
+-- WARNING: this function is unsuitable to compute the potential of a given (X,
+-- Y) pair w.r.t. to a CRF model for at least two reasons:
+-- * The parameters (second elements of the output list) are not from the model.
+-- * More importantly, the function does not take into account the potential labels
+--   of the OOV words.
 featuresIn :: DAG a (X, Y) -> [(Feature, L.LogFloat)]
 featuresIn dag = concat
   [ features edgeID dag
