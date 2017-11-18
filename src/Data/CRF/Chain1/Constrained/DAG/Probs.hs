@@ -8,6 +8,7 @@
 module Data.CRF.Chain1.Constrained.DAG.Probs
 ( probability
 , likelihood
+, parLikelihood
 ) where
 
 
@@ -174,11 +175,18 @@ probability crf dag =
     normFactor = Inf.zx crf (fmap fst dag)
 
 
--- | Log-likelihood of the given dataset.
+-- | Log-likelihood of the given dataset (parallelized version).
+parLikelihood :: Md.Model -> [DAG a (X, Y)] -> L.LogFloat
+parLikelihood crf dataset =
+  let k = numCapabilities
+      parts = partition k dataset
+      probs = parMap rseq (likelihood crf) parts
+  in  L.product probs
+
+
+-- | Log-likelihood of the given dataset (no parallelization).
 likelihood :: Md.Model -> [DAG a (X, Y)] -> L.LogFloat
 likelihood crf = L.product . map (probability crf)
--- likelihood crf = probability crf . head
--- likelihood crf = maximum . map (probability crf)
 
 
 ---------------------------------------------

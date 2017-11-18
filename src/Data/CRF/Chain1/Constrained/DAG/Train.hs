@@ -149,7 +149,10 @@ notify SGD.SgdArgs{..} model trainData evalData para k
   where
     report para = do
       let crf = model {Md.values = para}
-      llh <- show . LogFloat.logFromLogFloat . P.likelihood crf <$> SGD.loadData trainData
+      llh <- show
+        . LogFloat.logFromLogFloat
+        . P.parLikelihood crf
+        <$> SGD.loadData trainData
       acc <-
         if SGD.size evalData > 0
         then show . I.accuracy crf <$> SGD.loadData evalData
@@ -166,6 +169,14 @@ notify SGD.SgdArgs{..} model trainData evalData para k
         = fromIntegral (i * batchSize)
         / fromIntegral trainSize
     trainSize = SGD.size trainData
+
+
+------------------------------------------------------
+-- Expectation maximization
+------------------------------------------------------
+
+
+-- TODO:
 
 
 -- ------------------------------------------------------
