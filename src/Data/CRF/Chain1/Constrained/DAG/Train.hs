@@ -22,6 +22,8 @@ module Data.CRF.Chain1.Constrained.DAG.Train
 
 
 import Control.Applicative ((<$>), (<*>))
+import qualified Control.Arrow as Arr
+import Control.Monad (when)
 import System.IO (hSetBuffering, stdout, BufferMode (..))
 import Data.Binary (Binary, put, get)
 import qualified Data.Set as S
@@ -39,7 +41,7 @@ import           Data.DAG (DAG)
 import qualified Data.DAG as DAG
 
 import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, AVec, Feature)
--- import qualified Data.CRF.Chain1.Constrained.Core as C
+import qualified Data.CRF.Chain1.Constrained.Core as C
 import qualified Data.CRF.Chain1.Constrained.Model as Md
 import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as Int
 
@@ -97,11 +99,15 @@ train sgdArgs onDisk mkR0 featSel trainIO evalIO = do
     -- Create codec and encode the training dataset
     codec <- Cd.mkCodec <$> trainIO
     trainData_ <- Cd.encodeDataL codec <$> trainIO
-
-    -- TODO: finished here; need to convert internal sequential data
-    -- to internal DAG-based data.
-
-    SGD.withData onDisk trainData_ $ \trainData -> do
+    let trainLenOld = length trainData_
+        trainData0 = verifyDataset trainData_
+        trainLenNew = length trainData0
+    mapM_ print $ map dagProb trainData_
+    when (trainLenNew < trainLenOld) $ do
+      putStrLn $ "Discarded "
+        ++ show (trainLenOld - trainLenNew) ++ "/" ++ show trainLenOld
+        ++  " sentences from the training dataset"
+    SGD.withData onDisk trainData0 $ \trainData -> do
 
     -- Encode the evaluation dataset
     evalData_ <- Cd.encodeDataL codec <$> evalIO
@@ -169,6 +175,42 @@ notify SGD.SgdArgs{..} model trainData evalData para k
         = fromIntegral (i * batchSize)
         / fromIntegral trainSize
     trainSize = SGD.size trainData
+
+
+------------------------------------------------------
+-- Verification
+------------------------------------------------------
+
+
+-- | Compute the probability of the DAG, based on the probabilities assigned to
+-- different edges and their labels.
+dagProb :: DAG a (X, Y) -> Double
+dagProb dag = sum
+  [ fromEdge edgeID
+  | edgeID <- DAG.dagEdges dag
+  , DAG.isInitialEdge edgeID dag ]
+  where
+    fromEdge edgeID
+      = edgeProb edgeID
+      * fromNode (DAG.endsWith edgeID dag)
+    edgeProb edgeID =
+      let (_x, y) = DAG.edgeLabel edgeID dag
+      in  sum . map snd $ C.unY y
+    fromNode nodeID =
+      case DAG.outgoingEdges nodeID dag of
+        [] -> 1
+        xs -> sum (map fromEdge xs)
+
+
+-- | Filter out the sentences with `dagProb` < 1.
+verifyDataset :: [DAG a (X, Y)] -> [DAG a (X, Y)]
+verifyDataset =
+  filter verify
+  where
+    verify dag =
+      let p = dagProb dag
+      in  p >= 1 - eps && p <= 1 + eps
+    eps = 1e-9
 
 
 ------------------------------------------------------

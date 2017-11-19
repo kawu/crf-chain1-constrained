@@ -345,8 +345,9 @@ edgeProb2 crf dag alpha beta psi (kEdgeID, xLbIx) (lEdgeID, yLbIx) ix
 -- marginals :: Md.Model -> DAG a X -> [[(Lb, L.LogFloat)]]
 marginals :: Md.Model -> DAG a X -> DAG a [(Lb, L.LogFloat)]
 marginals crf dag
-  | not (zx1 `almostEq` zx2) =
-      error $ "[marginals] normalization factors not equal: " ++ show (zx1, zx2)
+  | not (zx1 `almostEq` zx2) = error $
+      "[marginals] normalization factors not equal: "
+      ++ show (L.logFromLogFloat zx1, L.logFromLogFloat zx2)
   | otherwise = DAG.mapE label dag
   where
     label edgeID _ =
@@ -510,11 +511,14 @@ accuracy crf dataset =
 ---------------------------------------------
 
 
-almostEq :: (Fractional t, Ord t) => t -> t -> Bool
-almostEq x y
+almostEq :: L.LogFloat -> L.LogFloat -> Bool
+almostEq x0 y0
   | isZero x && isZero y = True
   | otherwise = 1.0 - eps < z && z < 1.0 + eps
-  where z = x / y
+  where
+    x = L.logFromLogFloat x0
+    y = L.logFromLogFloat y0
+    z = x / y
 
 
 isZero :: (Fractional t, Ord t) => t -> Bool
