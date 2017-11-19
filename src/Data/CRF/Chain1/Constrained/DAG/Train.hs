@@ -102,11 +102,11 @@ train sgdArgs onDisk mkR0 featSel trainIO evalIO = do
     let trainLenOld = length trainData_
         trainData0 = verifyDataset trainData_
         trainLenNew = length trainData0
-    mapM_ print $ map dagProb trainData_
+    -- mapM_ print $ map dagProb trainData_
     when (trainLenNew < trainLenOld) $ do
       putStrLn $ "Discarded "
         ++ show (trainLenOld - trainLenNew) ++ "/" ++ show trainLenOld
-        ++  " sentences from the training dataset"
+        ++  " elements from the training dataset"
     SGD.withData onDisk trainData0 $ \trainData -> do
 
     -- Encode the evaluation dataset
