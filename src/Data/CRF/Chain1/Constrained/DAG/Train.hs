@@ -18,6 +18,9 @@ module Data.CRF.Chain1.Constrained.DAG.Train
 , oovChosen
 , anyChosen
 , anyInterps
+
+-- * Utils
+, dagProb
 ) where
 
 
