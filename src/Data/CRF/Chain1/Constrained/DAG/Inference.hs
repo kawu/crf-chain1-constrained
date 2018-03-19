@@ -352,7 +352,7 @@ marginals crf dag
   where
     margs = DAG.mapE label dag
     warning =
-      "[marginals] normalization factors not equal: "
+      "[marginals] normalization factors differ significantly: "
       ++ show (L.logFromLogFloat zx1, L.logFromLogFloat zx2)
     label edgeID _ =
       [ (lab, prob1 edgeID labID)
