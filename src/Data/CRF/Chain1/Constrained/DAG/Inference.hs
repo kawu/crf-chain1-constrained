@@ -52,6 +52,8 @@ import qualified Data.CRF.Chain1.Constrained.Intersect as I
 
 import           Data.CRF.Chain1.Constrained.DAG.Feature (featuresIn)
 
+import Debug.Trace (trace)
+
 
 ---------------------------------------------
 -- Util Types
@@ -345,11 +347,13 @@ edgeProb2 crf dag alpha beta psi (kEdgeID, xLbIx) (lEdgeID, yLbIx) ix
 -- marginals :: Md.Model -> DAG a X -> [[(Lb, L.LogFloat)]]
 marginals :: Md.Model -> DAG a X -> DAG a [(Lb, L.LogFloat)]
 marginals crf dag
-  | not (zx1 `almostEq` zx2) = error $
+  | not (zx1 `almostEq` zx2) = trace warning margs
+  | otherwise = margs
+  where
+    margs = DAG.mapE label dag
+    warning =
       "[marginals] normalization factors not equal: "
       ++ show (L.logFromLogFloat zx1, L.logFromLogFloat zx2)
-  | otherwise = DAG.mapE label dag
-  where
     label edgeID _ =
       [ (lab, prob1 edgeID labID)
       | (labID, lab) <- lbIxs crf dag edgeID ]
