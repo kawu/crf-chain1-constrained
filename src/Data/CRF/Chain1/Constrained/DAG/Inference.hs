@@ -170,7 +170,6 @@ forward crf dag = alpha where
     , DAG.isInitialEdge i dag ]
   withMem psi alpha i
     | i == snd bounds = const u'
-    -- | i == fst bounds = \j ->
     | i `S.member` initialSet = \j ->
         let x = lbOn crf (DAG.edgeLabel i dag) j
         in  psi j * Md.sgValue crf x
@@ -215,7 +214,6 @@ backward crf dag = beta where
     | i <- DAG.dagEdges dag
     , DAG.isFinalEdge i dag ]
   withMem beta i
-    -- | i == snd bounds = const 1
     | i `S.member` finalSet = const 1
     | i == fst bounds = const $ safeSum
       [ beta iPlus1 k * psi iPlus1 k
