@@ -60,7 +60,7 @@ import Debug.Trace (trace)
 ---------------------------------------------
 
 
--- | TODO.
+-- | Label index.
 type LbIx       = Int
 
 

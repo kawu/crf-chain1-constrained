@@ -20,6 +20,7 @@ module Data.CRF.Chain1.Constrained.Dataset.Codec
 , encodeSentL'Cn
 , encodeSentL
 
+, encodeLabel
 , encodeLabels
 , decodeLabel
 , decodeLabels
@@ -177,6 +178,10 @@ encodeDataL = map . encodeSentL
 -- | Encode the dataset with the codec.
 encodeData :: (Ord a, Ord b) => Codec a b -> [Sent a b] -> [Xs]
 encodeData = map . encodeSent
+
+-- | Encode the label.
+encodeLabel :: Ord b => Codec a b -> b -> Lb
+encodeLabel codec = C.evalCodec codec . encodeLbN
 
 -- | Decode the label.
 decodeLabel :: Ord b => Codec a b -> Lb -> Maybe b

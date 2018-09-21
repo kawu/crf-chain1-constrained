@@ -23,6 +23,7 @@ module Data.CRF.Chain1.Constrained.Core
 , AVec (..)
 , fromList
 , fromSet
+, toAscList
 
 -- * Features
 , Feature (..)
@@ -77,6 +78,11 @@ fromList = fromSet . S.fromList
 fromSet :: (Ord a, U.Unbox a) => S.Set a -> AVec a
 fromSet = AVec . U.fromList . S.toAscList
 {-# INLINE fromSet #-}
+
+-- | Convert AVec to an ascending list.
+toAscList :: (Ord a, U.Unbox a) => AVec a -> [a]
+toAscList = U.toList . unAVec
+{-# INLINE toAscList #-}
 
 -- | A word represented by a list of its observations
 -- and a list of its potential label interpretations.
@@ -166,7 +172,7 @@ instance Binary Feature where
             0 -> SFeature <$> get
             1 -> TFeature <$> get <*> get
             2 -> OFeature <$> get <*> get
-	    _ -> error "Binary Feature: unknown identifier"
+            _ -> error "Binary Feature: unknown identifier"
 
 
 -- | Is it a 'SFeature'?

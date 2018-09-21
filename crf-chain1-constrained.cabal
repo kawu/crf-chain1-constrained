@@ -1,5 +1,5 @@
 name:               crf-chain1-constrained
-version:            0.4.0
+version:            0.5.0
 synopsis:           First-order, constrained, linear-chain conditional random fields
 description:
     The library provides efficient implementation of the first-order,
@@ -24,7 +24,7 @@ description:
 license:            BSD3
 license-file:       LICENSE
 cabal-version:      >= 1.6
-copyright:          Copyright (c) 2012 IPI PAN
+copyright:          Copyright (c) 2012-2018 Jakub Waszczuk, IPI PAN
 author:             Jakub Waszczuk
 maintainer:         waszczuk.kuba@gmail.com
 stability:          experimental
