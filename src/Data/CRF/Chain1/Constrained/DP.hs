@@ -20,12 +20,12 @@ down1 bounds f = (!) down' where
           $ map f
           $ range bounds
 
-down2 :: (A.Ix i, A.Ix j) => (j, j) -> (j -> (i, i)) -> (j -> i -> e)
-      -> j -> i -> e
-down2 bounds1 bounds2 f = (!) down' where
-    down' = A.listArray bounds1
-        [ down1 (bounds2 i) (f i)
-        | i <- range bounds1 ]
+-- down2 :: (A.Ix i, A.Ix j) => (j, j) -> (j -> (i, i)) -> (j -> i -> e)
+--       -> j -> i -> e
+-- down2 bounds1 bounds2 f = (!) down' where
+--     down' = A.listArray bounds1
+--         [ down1 (bounds2 i) (f i)
+--         | i <- range bounds1 ]
 
 -- | 2-dimensional computation using dynamic programming.
 flexible2

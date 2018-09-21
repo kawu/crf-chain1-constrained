@@ -78,7 +78,7 @@ forward crf xs = alpha where
     bounds i
         | i == V.length xs = (0, 0)
         | otherwise = (0, lbNum crf xs i - 1)
-    withMem psi alpha i
+    withMem psi alpha' i
         | i == V.length xs = const u
         | i == 0 = \j ->
             let x = lbOn crf (xs V.! i) j
@@ -88,13 +88,13 @@ forward crf xs = alpha where
             in  psi j * ((u - v x) + w x)
       where
         u = sum
-            [ alpha (i-1) k
+            [ alpha' (i-1) k
             | (k, _) <- lbIxs crf xs (i-1) ]
         v x = sum
-            [ alpha (i-1) k
+            [ alpha' (i-1) k
             | (k, _) <- intersect (prevIxs crf x) (lbVec crf xs (i-1)) ]
         w x = sum
-            [ alpha (i-1) k * valueL crf ix
+            [ alpha' (i-1) k * valueL crf ix
             | (k, ix) <- intersect (prevIxs crf x) (lbVec crf xs (i-1)) ]
 
 -- | Backward table computation.
@@ -105,10 +105,10 @@ backward crf xs = beta where
     bounds i
         | i == 0    = (0, 0)
         | otherwise = (0, lbNum crf xs (i-1) - 1)
-    withMem psi beta i
+    withMem psi beta' i
         | i == V.length xs = const 1
         | i == 0 = const $ sum
-            [ beta (i+1) k * psi k
+            [ beta' (i+1) k * psi k
             * sgValue crf (lbOn crf (xs V.! i) k)
             | (k, _) <- lbIxs crf xs i ]
         | otherwise = \j ->
@@ -116,13 +116,13 @@ backward crf xs = beta where
             in  (u - v y) + w y
       where
         u = sum
-            [ beta (i+1) k * psi k
+            [ beta' (i+1) k * psi k
             | (k, _ ) <- lbIxs crf xs i ]
         v y = sum
-            [ beta (i+1) k * psi k
+            [ beta' (i+1) k * psi k
             | (k, _ ) <- intersect (nextIxs crf y) (lbVec crf xs i) ]
         w y = sum
-            [ beta (i+1) k * psi k * valueL crf ix
+            [ beta' (i+1) k * psi k * valueL crf ix
             | (k, ix) <- intersect (nextIxs crf y) (lbVec crf xs i) ]
 
 zxBeta :: ProbArray -> L.LogFloat

@@ -16,7 +16,7 @@ module Data.CRF.Chain1.Constrained.DAG.Feature.Hidden
 import           Data.DAG (DAG)
 import qualified Data.DAG as DAG
 
-import           Data.CRF.Chain1.Constrained.Core (AVec, X, Y, Lb, Feature)
+import           Data.CRF.Chain1.Constrained.Core (AVec, X, Lb, Feature)
 import qualified Data.CRF.Chain1.Constrained.Core as C
 
 -- import Data.CRF.Chain1.Constrained.Dataset.Internal

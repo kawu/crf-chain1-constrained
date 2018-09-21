@@ -16,7 +16,7 @@ module Data.CRF.Chain1.Constrained.Feature.Hidden
 import qualified Data.Vector as V
 
 import Data.CRF.Chain1.Constrained.Dataset.Internal
-import Data.CRF.Chain1.Constrained.Feature
+-- import Data.CRF.Chain1.Constrained.Feature
 
 -- | Hidden 'OFeature's which can be constructed based on the dataset.
 -- The default set of potential interpretations is used for all unknown words.

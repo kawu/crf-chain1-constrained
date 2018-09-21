@@ -9,7 +9,7 @@ import           Prelude hiding (Word)
 -- import qualified Data.Set as S
 -- import qualified Data.Map as M
 
-import qualified Data.DAG as DAG
+-- import qualified Data.DAG as DAG
 import           Data.DAG (DAG)
 -- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 -- import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)

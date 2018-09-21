@@ -12,18 +12,18 @@ module Data.CRF.Chain1.Constrained.DAG.Probs
 ) where
 
 
-import Control.Applicative ((<$>))
-import Data.Maybe (catMaybes)
-import Data.List (maximumBy, sort, sortBy)
-import Data.Function (on)
+-- import Control.Applicative ((<$>))
+-- import Data.Maybe (catMaybes)
+-- import Data.List (maximumBy, sort, sortBy)
+-- import Data.Function (on)
 import qualified Data.Set as S
 import qualified Data.Array as A
 -- import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
-import qualified Data.Foldable as F
+-- import qualified Data.Foldable as F
 
 import Control.Parallel.Strategies (rseq, parMap)
-import Control.Parallel (par, pseq)
+-- import Control.Parallel (par, pseq)
 import GHC.Conc (numCapabilities)
 import qualified Data.Number.LogFloat as L
 
@@ -40,7 +40,7 @@ import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, AVec)
 import qualified Data.CRF.Chain1.Constrained.Core as C
 import qualified Data.CRF.Chain1.Constrained.Intersect as I
 
-import           Data.CRF.Chain1.Constrained.DAG.Feature (featuresIn)
+-- import           Data.CRF.Chain1.Constrained.DAG.Feature (featuresIn)
 import qualified Data.CRF.Chain1.Constrained.DAG.Inference as Inf
 
 
@@ -66,8 +66,9 @@ type ProbArray  = EdgeID -> LbIx -> L.LogFloat
 
 -- | Vector of labels and the corresponding probabilities on the given edge of
 -- the sentence.
+-- TODO: get rid of the _crf argument.
 lbVec :: Md.Model -> DAG a (X, Y) -> EdgeID -> AVec (Lb, Double)
-lbVec crf dag edgeID =
+lbVec _crf dag edgeID =
   case DAG.edgeLabel edgeID dag of
     (_, y) -> C._unY y
 {-# INLINE lbVec #-}
@@ -134,7 +135,7 @@ forward crf dag = alpha where
     [ i
     | i <- DAG.dagEdges dag
     , DAG.isInitialEdge i dag ]
-  withMem psi alpha i
+  withMem psi alpha' i
     | i == snd bounds = const u'                    -- <= TO CHECK
     | i `S.member` initialSet = \j ->
         let (x, _) = lbOn crf dag i j
@@ -144,23 +145,23 @@ forward crf dag = alpha where
         in  psi j * ((u - v x) + w x)
     where
       u = safeSum
-        [ alpha iMinus1 k
+        [ alpha' iMinus1 k
         | iMinus1 <- DAG.prevEdges i dag
         , (k, _) <- lbIxs crf dag iMinus1 ]
       v x = safeSum
-        [ alpha iMinus1 k
+        [ alpha' iMinus1 k
         | iMinus1 <- DAG.prevEdges i dag
         , (k, _) <-
             I.intersect (Md.prevIxs crf x) (xify $ lbVec crf dag iMinus1) ]
       w x = safeSum
-        [ alpha iMinus1 k * Md.valueL crf ix
+        [ alpha' iMinus1 k * Md.valueL crf ix
         | iMinus1 <- DAG.prevEdges i dag
         , (k, ix) <- I.intersect (Md.prevIxs crf x) (xify $ lbVec crf dag iMinus1) ]
       -- Note that if `i == snd bounds` then `i` does not refer to any existing
       -- edge, hence the need to introduce `u'` which does almost the same thing
       -- as `u`.
       u' = safeSum
-        [ alpha iMinus1 k
+        [ alpha' iMinus1 k
         | iMinus1 <- DAG.dagEdges dag
         , DAG.isFinalEdge iMinus1 dag
         , (k, _) <- lbIxs crf dag iMinus1 ]

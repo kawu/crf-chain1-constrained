@@ -103,8 +103,8 @@ encodeWordL'Cu w = do
     r' <- mapM encodeLbU $ S.toList $ lbs $ word w
     let x = mkX x' r'
     y  <- mkY <$> sequence
-    	[ (,) <$> encodeLbU lb <*> pure pr
-	| (lb, pr) <- (M.toList . unProb) (choice w) ]
+        [ (,) <$> encodeLbU lb <*> pure pr
+        | (lb, pr) <- (M.toList . unProb) (choice w) ]
     return (x, y)
 
 -- | Encodec the labeled word and do *not* update the codec.
@@ -114,8 +114,8 @@ encodeWordL'Cn w = do
     r' <- mapM encodeLbN . S.toList . lbs $ word w
     let x = mkX x' r'
     y  <- mkY <$> sequence
-    	[ (,) <$> encodeLbN lb <*> pure pr
-	| (lb, pr) <- (M.toList . unProb) (choice w) ]
+        [ (,) <$> encodeLbN lb <*> pure pr
+        | (lb, pr) <- (M.toList . unProb) (choice w) ]
     return (x, y)
 
 -- | Encode the word and update the codec.

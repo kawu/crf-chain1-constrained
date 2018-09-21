@@ -24,7 +24,7 @@ module Data.CRF.Chain1.Constrained.DAG.Inference
 
 import Control.Applicative ((<$>))
 import Data.Maybe (catMaybes)
-import Data.List (maximumBy, sort, sortBy)
+import Data.List (maximumBy, sortBy)
 import Data.Function (on)
 import qualified Data.Set as S
 import qualified Data.Array as A
@@ -50,7 +50,7 @@ import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, AVec)
 import qualified Data.CRF.Chain1.Constrained.Core as C
 import qualified Data.CRF.Chain1.Constrained.Intersect as I
 
-import           Data.CRF.Chain1.Constrained.DAG.Feature (featuresIn)
+-- import           Data.CRF.Chain1.Constrained.DAG.Feature (featuresIn)
 
 import Debug.Trace (trace)
 
@@ -168,7 +168,7 @@ forward crf dag = alpha where
     [ i
     | i <- DAG.dagEdges dag
     , DAG.isInitialEdge i dag ]
-  withMem psi alpha i
+  withMem psi alpha' i
     | i == snd bounds = const u'
     | i `S.member` initialSet = \j ->
         let x = lbOn crf (DAG.edgeLabel i dag) j
@@ -178,22 +178,22 @@ forward crf dag = alpha where
         in  psi j * ((u - v x) + w x)
     where
       u = safeSum
-        [ alpha iMinus1 k
+        [ alpha' iMinus1 k
         | iMinus1 <- DAG.prevEdges i dag
         , (k, _) <- lbIxs crf dag iMinus1 ]
       v x = safeSum
-        [ alpha iMinus1 k
+        [ alpha' iMinus1 k
         | iMinus1 <- DAG.prevEdges i dag
         , (k, _) <- I.intersect (Md.prevIxs crf x) (lbVec crf dag iMinus1) ]
       w x = safeSum
-        [ alpha iMinus1 k * Md.valueL crf ix
+        [ alpha' iMinus1 k * Md.valueL crf ix
         | iMinus1 <- DAG.prevEdges i dag
         , (k, ix) <- I.intersect (Md.prevIxs crf x) (lbVec crf dag iMinus1) ]
       -- Note that if `i == snd bounds` then `i` does not refer to any existing
       -- edge, hence the need to introduce `u'` which does almost the same thing
       -- as `u`.
       u' = safeSum
-        [ alpha iMinus1 k
+        [ alpha' iMinus1 k
         | iMinus1 <- DAG.dagEdges dag
         , DAG.isFinalEdge iMinus1 dag
         , (k, _) <- lbIxs crf dag iMinus1 ]
@@ -213,10 +213,10 @@ backward crf dag = beta where
     [ i
     | i <- DAG.dagEdges dag
     , DAG.isFinalEdge i dag ]
-  withMem beta i
+  withMem beta' i
     | i `S.member` finalSet = const 1
     | i == fst bounds = const $ safeSum
-      [ beta iPlus1 k * psi iPlus1 k
+      [ beta' iPlus1 k * psi iPlus1 k
         * Md.sgValue crf (lbOn crf (DAG.edgeLabel iPlus1 dag) k)
       | iPlus1 <- DAG.dagEdges dag
       , DAG.isInitialEdge iPlus1 dag
@@ -229,19 +229,19 @@ backward crf dag = beta where
       -- Instead of simply adding `1` to `i` (i.e., `i + 1`),
       -- we need to find the identifiers of the succeeding edges.
       u = safeSum
-        [ beta iPlus1 k * psi iPlus1 k
+        [ beta' iPlus1 k * psi iPlus1 k
         | iPlus1 <- DAG.nextEdges i dag
         , (k, _ ) <- lbIxs crf dag iPlus1 ]
       -- `y` is the label on position `i`, we are looking for
       -- matching labels on the position `i+1`.
       v y = safeSum
-        [ beta iPlus1 k * psi iPlus1 k
+        [ beta' iPlus1 k * psi iPlus1 k
         | iPlus1 <- DAG.nextEdges i dag
         , (k, _ ) <- I.intersect (Md.nextIxs crf y) (lbVec crf dag iPlus1) ]
       -- `y` is the label on position `i`, we are looking for
       -- matching labels on the position `i+1`.
       w y = safeSum
-        [ beta iPlus1 k * psi iPlus1 k * Md.valueL crf ix
+        [ beta' iPlus1 k * psi iPlus1 k * Md.valueL crf ix
         | iPlus1 <- DAG.nextEdges i dag
         , (k, ix) <- I.intersect (Md.nextIxs crf y) (lbVec crf dag iPlus1) ]
 
@@ -288,7 +288,7 @@ edgeProb1 dag alpha beta k x
       error $ "edgeProb1: infinite -- " ++ show [up1, up2, down, down'] -- ++ "; " ++ show (k, x)
   | otherwise = up1 * up2 / down
   where
-    isInf x = isInfinite (L.logFromLogFloat x :: Double)
+    isInf v = isInfinite (L.logFromLogFloat v :: Double)
     up1 = alpha k x
     up2 = beta k x
     down = zxBeta dag beta
@@ -462,7 +462,7 @@ goodAndBad' crf dataset =
 accuracy :: Md.Model -> [DAG a (X, Y)] -> Double
 accuracy crf dataset =
     let k = numCapabilities
-    	parts = partition k dataset
+        parts = partition k dataset
         xs = parMap rseq (goodAndBad' crf) parts
         (good, bad) = F.foldl' add (0, 0) xs
         add (g, b) (g', b') = (g + g', b + b')

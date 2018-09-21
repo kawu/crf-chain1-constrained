@@ -25,8 +25,8 @@ import Data.Maybe (fromJust)
 import Data.List (groupBy, sort)
 import Data.Function (on)
 import Data.Binary
-import qualified Data.Vector.Generic.Base as G
-import qualified Data.Vector.Generic.Mutable as G
+-- import qualified Data.Vector.Generic.Base as G
+-- import qualified Data.Vector.Generic.Mutable as G
 import qualified Data.Set as Set
 import qualified Data.Map as M
 import qualified Data.Vector.Unboxed as U
@@ -71,7 +71,7 @@ data Model = Model {
     , r0        :: AVec Lb
     -- | Singular feature index for the given label.  Index is equall to -1
     -- if feature is not present in the model.
-    , sgIxsV 	:: U.Vector FeatIx
+    , sgIxsV    :: U.Vector FeatIx
     -- | Set of labels for the given observation which, together with the
     -- observation, constitute an observation feature of the model.
     , obIxsV    :: V.Vector (AVec LbIx)

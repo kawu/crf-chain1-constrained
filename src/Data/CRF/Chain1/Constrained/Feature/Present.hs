@@ -15,7 +15,7 @@ module Data.CRF.Chain1.Constrained.Feature.Present
 import qualified Data.Vector as V
 
 import Data.CRF.Chain1.Constrained.Dataset.Internal
-import Data.CRF.Chain1.Constrained.Feature
+-- import Data.CRF.Chain1.Constrained.Feature
 
 -- | 'OFeature's which occur in the dataset.
 presentOFeats :: [(Xs, Ys)] -> [Feature]

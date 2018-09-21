@@ -25,13 +25,13 @@ module Data.CRF.Chain1.Constrained.DAG.Train
 
 
 import Control.Applicative ((<$>), (<*>))
-import qualified Control.Arrow as Arr
+-- import qualified Control.Arrow as Arr
 import Control.Monad (when)
 import System.IO (hSetBuffering, stdout, BufferMode (..))
 import Data.Binary (Binary, put, get)
 import qualified Data.Set as S
 import qualified Data.Map as M
-import qualified Data.Vector as V
+-- import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Foldable as F
 import qualified Numeric.SGD.Momentum as SGD
@@ -47,7 +47,7 @@ import qualified Data.DAG as DAG
 import           Data.CRF.Chain1.Constrained.Core (X, Y, Lb, AVec, Feature)
 import qualified Data.CRF.Chain1.Constrained.Core as C
 import qualified Data.CRF.Chain1.Constrained.Model as Md
-import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as Int
+-- import qualified Data.CRF.Chain1.Constrained.Dataset.Internal as Int
 
 import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Codec as Cd
 import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.External as E
@@ -157,8 +157,8 @@ notify SGD.SgdArgs{..} model trainData evalData para k
 --       report $ U.map (*0.5) para
 --       report $ U.map (*0.1) para
   where
-    report para = do
-      let crf = model {Md.values = para}
+    report paraNow = do
+      let crf = model {Md.values = paraNow}
       llh <- show
         . LogFloat.logFromLogFloat
         . P.parLikelihood crf
