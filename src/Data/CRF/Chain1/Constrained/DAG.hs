@@ -16,6 +16,7 @@ module Data.CRF.Chain1.Constrained.DAG
 , SentL
 
 -- ** Tagging
+, Config (..)
 , tag
 , marginals
 -- , tagK
@@ -139,7 +140,7 @@ marginals Config{..} crf0 sent
 
 
 -- | Blacklist the given set of tags, so that they are never proposed for
--- those segments for which the set of tags is not know a priori.
+-- OOV segments.
 blackList :: (Ord b) => S.Set b -> CRF a b -> CRF a b
 blackList blackSet CRF{..} = CRF
   { codec = codec 
@@ -148,7 +149,7 @@ blackList blackSet CRF{..} = CRF
   where
     newModel = model {Model.r0 = newR0}
     r0Set = S.fromList . Core.toAscList $ Model.r0 model
-    newR0 = Core.fromSet $ r0Set `S.intersection` blackSetEncoded
+    newR0 = Core.fromSet $ r0Set `S.difference` blackSetEncoded
     blackSetEncoded 
       = S.fromList
       . map (C.encodeLabel codec)
