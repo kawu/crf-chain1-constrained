@@ -20,15 +20,18 @@ module Data.CRF.Chain1.Constrained.DAG.Train
 , anyInterps
 
 -- * Utils
-, dagProb
+, verifyDAG
+, Error(..)
+-- , dagProb
 ) where
 
 
 import Control.Applicative ((<$>), (<*>))
 -- import qualified Control.Arrow as Arr
-import Control.Monad (when)
+import Control.Monad (when, guard)
 import System.IO (hSetBuffering, stdout, BufferMode (..))
 import Data.Binary (Binary, put, get)
+-- import           Data.Maybe (fromJust)
 import qualified Data.Set as S
 import qualified Data.Map as M
 -- import qualified Data.Vector as V
@@ -186,36 +189,90 @@ notify SGD.SgdArgs{..} model trainData evalData para k
 ------------------------------------------------------
 
 
--- | Compute the probability of the DAG, based on the probabilities assigned to
--- different edges and their labels.
-dagProb :: DAG a (X, Y) -> Double
-dagProb dag = sum
-  [ fromEdge edgeID
-  | edgeID <- DAG.dagEdges dag
-  , DAG.isInitialEdge edgeID dag ]
-  where
-    fromEdge =
-      Memo.wrap DAG.EdgeID DAG.unEdgeID Memo.integral fromEdge'
-    fromEdge' edgeID
-      = edgeProb edgeID
-      * fromNode (DAG.endsWith edgeID dag)
-    edgeProb edgeID =
-      let (_x, y) = DAG.edgeLabel edgeID dag
-      in  sum . map snd $ C.unY y
-    fromNode nodeID =
-      case DAG.outgoingEdges nodeID dag of
-        [] -> 1
-        xs -> sum (map fromEdge xs)
+-- -- | Compute the probability of the DAG, based on the probabilities assigned to
+-- -- different edges and their labels.
+-- TODO: This implementation is not correct!
+-- dagProb :: DAG a (X, Y) -> Double
+-- dagProb dag = sum
+--   [ fromEdge edgeID
+--   | edgeID <- DAG.dagEdges dag
+--   , DAG.isInitialEdge edgeID dag ]
+--   where
+--     fromEdge =
+--       Memo.wrap DAG.EdgeID DAG.unEdgeID Memo.integral fromEdge'
+--     fromEdge' edgeID
+--       = edgeProb edgeID
+--       * fromNode (DAG.endsWith edgeID dag)
+--     edgeProb edgeID =
+--       let (_x, y) = DAG.edgeLabel edgeID dag
+--       in  sum . map snd $ C.unY y
+--     fromNode nodeID =
+--       case DAG.outgoingEdges nodeID dag of
+--         [] -> 1
+--         xs -> sum (map fromEdge xs)
 
 
--- | Filter out the sentences with `dagProb` < 1.
+-- | Filter incorrect sentences.
 verifyDataset :: [DAG a (X, Y)] -> [DAG a (X, Y)]
 verifyDataset =
   filter verify
   where
-    verify dag =
-      let p = dagProb dag
-      in  p >= 1 - eps && p <= 1 + eps
+    verify dag = verifyDAG dag == Nothing
+--     verify dag =
+--       let p = dagProb dag
+--       in  p >= 1 - eps && p <= 1 + eps
+--     eps = 1e-9
+
+
+-- | Verification error.
+data Error
+  = Malformed
+  | Cyclic
+  | SeveralSources [DAG.NodeID]
+  | SeveralTargets [DAG.NodeID]
+  | WrongBalance [DAG.NodeID]
+    -- ^ Nodes for which the total sum of the incoming probabilities does not
+    -- equal the total sum of the outgoing probabilities
+  deriving (Show, Eq, Ord)
+
+
+-- | Check if the DAG satisfies all the desirable properties.
+verifyDAG :: DAG a (X, Y) -> Maybe Error
+verifyDAG dag
+  | not (DAG.isOK dag) = Just Malformed
+  | not (DAG.isDAG dag) = Just Cyclic
+  | length sources /= 1 = Just $ SeveralSources sources
+  | length targets /= 1 = Just $ SeveralTargets targets
+  | length wrong > 1 = Just $ WrongBalance wrong
+  | otherwise = Nothing
+  where
+    sources = do
+      node <- DAG.dagNodes dag
+      guard . null $ DAG.ingoingEdges node dag
+      return node
+    targets = do
+      node <- DAG.dagNodes dag
+      guard . null $ DAG.outgoingEdges node dag
+      return node
+    wrong = do
+      node <- DAG.dagNodes dag
+      let ing = DAG.ingoingEdges node dag
+          out = DAG.outgoingEdges node dag
+          ingBalance =
+            if node `elem` sources
+               then 1
+               else sum (map edgeProb ing)
+          outBalance =
+            if node `elem` targets
+               then 1
+               else sum (map edgeProb out)
+      guard . not $ equal ingBalance outBalance
+      return node
+    edgeProb edgeID =
+      let (_x, y) = DAG.edgeLabel edgeID dag
+      in  sum . map snd $ C.unY y
+    equal x y =
+      x - eps <= y && x + eps >= y
     eps = 1e-9
 
 
